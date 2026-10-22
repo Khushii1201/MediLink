@@ -1,5 +1,9 @@
 node_modules/
-medilink.db
-medilink.db-shm
-medilink.db-wal
+*.db
+*.db-shm
+*.db-wal
 .env
+frontend/dist
+coverage/
+.DS_Store
+Thumbs.db
