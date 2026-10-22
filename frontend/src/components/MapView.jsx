@@ -35,9 +35,9 @@ function createCustomIcon(color, text = '') {
 
 const ICONS = {
   HOSPITAL: createCustomIcon('#0f766e', 'H'),
-  AMBULANCE: createCustomIcon('#2563eb', '🚑'),
-  PATIENT: createCustomIcon('#dc2626', '📍'),
-  BLOODBANK: createCustomIcon('#b91c1c', '🩸'),
+  AMBULANCE: createCustomIcon('#2563eb', 'A'),
+  PATIENT: createCustomIcon('#dc2626', 'P'),
+  BLOODBANK: createCustomIcon('#b91c1c', 'B'),
   DEFAULT: createCustomIcon('#64748b', '•'),
 };
 

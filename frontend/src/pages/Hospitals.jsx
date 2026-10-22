@@ -102,7 +102,7 @@ export default function Hospitals() {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={requestLocation} loading={geoLoading}>
-          <span>📍 Near Me</span>
+          <span>Use My Location</span>
         </Button>
       </div>
 
@@ -110,7 +110,7 @@ export default function Hospitals() {
       <div className="card filter-panel">
         <div className="filter-row">
           <div className="search-input-wrap">
-            <span className="search-icon" aria-hidden="true">🔍</span>
+            <span className="search-icon" aria-hidden="true">⌕</span>
             <input
               type="text"
               className="form-input search-input"

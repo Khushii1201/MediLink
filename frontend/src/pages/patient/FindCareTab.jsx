@@ -67,7 +67,7 @@ export default function FindCareTab({ coords, onRequestAdmission }) {
 
         <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <Button variant="primary" onClick={handleGetRecommendations} loading={loading}>
-            <span>🧠 Generate Ranked Recommendations</span>
+            <span>Generate Ranked Recommendations</span>
           </Button>
           <span className="muted" style={{ fontSize: '0.85rem' }}>
             Location: {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
@@ -94,7 +94,7 @@ export default function FindCareTab({ coords, onRequestAdmission }) {
             <div>
               <h4>Ranked Facility Results ({recommendations.recommendations.length} matched)</h4>
               <p className="disclaimer-note">
-                ℹ️ <em>{recommendations.note}</em>
+                <em>{recommendations.note}</em>
               </p>
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function FindCareTab({ coords, onRequestAdmission }) {
                       size="sm"
                       onClick={() => onRequestAdmission(rec)}
                     >
-                      <span>🚨 Request Admission Here</span>
+                      <span>Request Admission Here</span>
                     </Button>
                   </div>
                 </div>

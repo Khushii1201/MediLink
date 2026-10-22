@@ -205,7 +205,6 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
               {trackingData?.ambulance ? (
                 <div className="vehicle-details-box">
                   <div className="vehicle-badge-row">
-                    <span className="vehicle-icon">🚑</span>
                     <div>
                       <h4 className="vehicle-no">{trackingData.ambulance.vehicle_no}</h4>
                       <p className="muted">Driver: {trackingData.ambulance.driver_name || 'Duty Operator'}</p>
@@ -216,7 +215,7 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                     <div className="driver-phone-bar">
                       <span>Driver Contact:</span>
                       <a href={`tel:${trackingData.ambulance.driver_phone}`} className="phone-link">
-                        📞 {trackingData.ambulance.driver_phone}
+                        {trackingData.ambulance.driver_phone}
                       </a>
                     </div>
                   )}
@@ -236,7 +235,6 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                 </div>
               ) : (
                 <div className="queued-state-box">
-                  <span className="siren-pulse">🚨</span>
                   <h4>Dispatch in Queue</h4>
                   <p className="muted">
                     Your request is in high-priority dispatch. Assigning the nearest free emergency vehicle as soon as one clears.
@@ -246,7 +244,6 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
 
               <div className="trip-locations-list">
                 <div className="loc-item">
-                  <span className="loc-bullet green">📍</span>
                   <div>
                     <strong>Pickup Point:</strong>
                     <p className="muted">{activeRequest.pickup_location}</p>
@@ -254,7 +251,6 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                 </div>
                 {activeRequest.drop_location && (
                   <div className="loc-item">
-                    <span className="loc-bullet red">🏥</span>
                     <div>
                       <strong>Destination:</strong>
                       <p className="muted">{activeRequest.drop_location}</p>
@@ -325,12 +321,12 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                   className="full-width"
                   style={{ marginTop: '1rem' }}
                 >
-                  <span>🚨 Dispatch Emergency Ambulance</span>
+                  <span>Request Emergency Ambulance</span>
                 </Button>
               </div>
 
               <div className="form-map-col">
-                <span className="map-picker-hint">📍 Click on map to set pickup pin:</span>
+                <span className="map-picker-hint">Click on map to select pickup coordinates:</span>
                 <MapView
                   center={[pickupCoords.lat, pickupCoords.lng]}
                   zoom={12}

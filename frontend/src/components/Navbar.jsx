@@ -23,7 +23,6 @@ export default function Navbar() {
 
   const closeMobile = () => setMobileMenuOpen(false);
 
-  // Persistent red emergency action
   const handleEmergencyClick = () => {
     closeMobile();
     if (!user) {
@@ -52,7 +51,7 @@ export default function Navbar() {
             Home
           </NavLink>
           <NavLink to="/hospitals" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            Find Hospitals
+            Hospitals
           </NavLink>
           <NavLink to="/blood" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             Blood Bank
@@ -73,9 +72,8 @@ export default function Navbar() {
             type="button"
             className="btn-emergency"
             onClick={handleEmergencyClick}
-            aria-label="Emergency Ambulance Request"
+            aria-label="Emergency Care Request"
           >
-            <span className="emergency-siren" aria-hidden="true">🚨</span>
             <span>Emergency Care</span>
           </button>
 
@@ -110,11 +108,12 @@ export default function Navbar() {
         <div className="mobile-toggle mobile-only">
           <button
             type="button"
-            className="btn-emergency-mobile"
+            className="btn-emergency"
+            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
             onClick={handleEmergencyClick}
-            aria-label="Emergency Request"
+            aria-label="Emergency Care Request"
           >
-            🚨
+            Emergency
           </button>
           <button
             type="button"
@@ -137,7 +136,7 @@ export default function Navbar() {
             Home
           </NavLink>
           <NavLink to="/hospitals" className="mobile-nav-item" onClick={closeMobile}>
-            Find Hospitals
+            Hospitals
           </NavLink>
           <NavLink to="/blood" className="mobile-nav-item" onClick={closeMobile}>
             Blood Bank
@@ -159,8 +158,8 @@ export default function Navbar() {
                   <strong>{user.name}</strong>
                   <span className="muted">Role: {user.role}</span>
                 </div>
-                <button type="button" className="btn btn-outline" onClick={handleLogout}>
-                  Log out
+                <button type="button" className="btn btn-secondary btn-sm" onClick={handleLogout}>
+                  Sign out
                 </button>
               </div>
             ) : (

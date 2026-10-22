@@ -3,13 +3,13 @@ import { Button } from './Button';
 export function EmptyState({
   title = 'No items found',
   message = 'There is currently no data to display.',
-  icon = '📋',
+  icon = null,
   actionLabel,
   onAction,
 }) {
   return (
     <div className="empty-state">
-      <div className="empty-icon" aria-hidden="true">{icon}</div>
+      {icon && <div className="empty-icon" aria-hidden="true">{icon}</div>}
       <h4 className="empty-title">{title}</h4>
       <p className="empty-message">{message}</p>
       {actionLabel && onAction && (

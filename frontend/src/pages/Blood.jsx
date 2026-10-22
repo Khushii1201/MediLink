@@ -102,7 +102,7 @@ export default function Blood() {
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={requestLocation} loading={geoLoading}>
-          <span>📍 Near Me</span>
+          <span>Use My Location</span>
         </Button>
       </div>
 
@@ -160,7 +160,7 @@ export default function Blood() {
                     <h3 className="blood-bank-name">{unit.bloodbank_name}</h3>
                     <p className="blood-bank-addr">{unit.address}</p>
                     {unit.phone && (
-                      <span className="contact-tag">📞 {unit.phone}</span>
+                      <span className="contact-tag">Tel: {unit.phone}</span>
                     )}
                   </div>
                   {unit.distance_km !== null && (
@@ -185,12 +185,12 @@ export default function Blood() {
 
                 {isLowStock && (
                   <div className="low-stock-alert">
-                    ⚠️ <strong>Critical Low Stock:</strong> Only {unit.available} unit(s) remaining.
+                    <strong>Critical Low Stock:</strong> Only {unit.available} unit(s) remaining.
                   </div>
                 )}
                 {isOutOfStock && (
                   <div className="out-of-stock-alert">
-                    ❌ <strong>Currently Depleted:</strong> 0 units available.
+                    <strong>Currently Depleted:</strong> 0 units available.
                   </div>
                 )}
 

@@ -120,11 +120,11 @@ export default function HospitalDetail() {
       <div className="detail-hero-card card">
         <div className="detail-hero-content">
           <div className="hero-meta-badge">
-            <span className="badge badge-success">Verified Medical Center</span>
-            <span>24/7 Emergency Wing</span>
+            <span className="badge badge-success">Verified Facility</span>
+            <span>24/7 Emergency Care</span>
           </div>
           <h1 className="detail-hospital-title">{hospital.name}</h1>
-          <p className="detail-hospital-address">📍 {hospital.address}</p>
+          <p className="detail-hospital-address">{hospital.address}</p>
           {hospital.description && (
             <p className="detail-hospital-desc">{hospital.description}</p>
           )}
@@ -132,12 +132,12 @@ export default function HospitalDetail() {
           <div className="detail-contact-tags">
             {hospital.phone && (
               <span className="contact-tag">
-                📞 Emergency Desk: <strong>{hospital.phone}</strong>
+                Emergency Desk: <strong>{hospital.phone}</strong>
               </span>
             )}
             {hospital.email && (
               <span className="contact-tag">
-                ✉️ {hospital.email}
+                Email: <strong>{hospital.email}</strong>
               </span>
             )}
           </div>
@@ -145,10 +145,10 @@ export default function HospitalDetail() {
 
         <div className="detail-hero-action">
           <Button variant="danger" size="lg" onClick={handleAdmissionClick}>
-            <span>🚨 Request Emergency Admission</span>
+            <span>Request Emergency Admission</span>
           </Button>
           <p className="muted" style={{ fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center' }}>
-            Instant electronic request queueing
+            Direct triage queue submission
           </p>
         </div>
       </div>
@@ -217,7 +217,7 @@ export default function HospitalDetail() {
                         <td>{wt.reported_minutes} min</td>
                         <td>
                           <span className="estimated-wait-badge">
-                            ⏱️ {wt.estimated_minutes} min
+                            {wt.estimated_minutes} min
                           </span>
                         </td>
                         <td className="muted" style={{ fontSize: '0.85rem' }}>
@@ -228,7 +228,7 @@ export default function HospitalDetail() {
                   </tbody>
                 </table>
                 <p className="estimate-disclaimer">
-                  ℹ️ <em>Note: Waiting-time values are estimates provided for coordination and transparency; not a clinical or triage prioritization guarantee.</em>
+                  <em>Note: Waiting-time values are operational estimates provided for coordination and transparency; not a clinical or triage prioritization guarantee.</em>
                 </p>
               </div>
             ) : (
@@ -344,9 +344,9 @@ export default function HospitalDetail() {
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
             >
-              <option value="CRITICAL">🚨 CRITICAL — Immediate Life Threat (Trauma, Cardiac, Stroke)</option>
-              <option value="MEDIUM">⚠️ MEDIUM — Urgent Admission Required</option>
-              <option value="LOW">ℹ️ LOW — Stable / Scheduled Emergency Check</option>
+              <option value="CRITICAL">CRITICAL — Immediate Life Threat (Trauma, Cardiac, Stroke)</option>
+              <option value="MEDIUM">MEDIUM — Urgent Admission Required</option>
+              <option value="LOW">LOW — Stable / Scheduled Emergency Check</option>
             </select>
           </FormField>
 

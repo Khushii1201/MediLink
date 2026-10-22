@@ -96,10 +96,10 @@ export default function PatientDashboard() {
   };
 
   const tabsConfig = [
-    { id: 'find-care', label: 'Find Care & Recommendations', icon: '🧠' },
-    { id: 'admissions', label: 'My Admissions', icon: '🏥', count: admissions.length },
-    { id: 'ambulance', label: 'Emergency Ambulance', icon: '🚑', count: ambulanceRequests.filter(r => ['REQUESTED', 'ACCEPTED', 'EN_ROUTE'].includes(r.status)).length || undefined },
-    { id: 'blood', label: 'Blood Units & Reservations', icon: '🩸', count: reservations.length },
+    { id: 'find-care', label: 'Find Care & Recommendations' },
+    { id: 'admissions', label: 'My Admissions', count: admissions.length },
+    { id: 'ambulance', label: 'Emergency Ambulance', count: ambulanceRequests.filter(r => ['REQUESTED', 'ACCEPTED', 'EN_ROUTE'].includes(r.status)).length || undefined },
+    { id: 'blood', label: 'Blood Units & Reservations', count: reservations.length },
   ];
 
   return (
@@ -114,7 +114,7 @@ export default function PatientDashboard() {
         </div>
         <div className="banner-quick-actions">
           <Button variant="danger" size="md" onClick={() => setActiveTab('ambulance')}>
-            <span>🚨 Dispatch Ambulance</span>
+            <span>Dispatch Ambulance</span>
           </Button>
           <Button variant="outline" size="md" onClick={() => handleOpenNewAdmission()}>
             <span>+ Request Admission</span>
@@ -197,9 +197,9 @@ export default function PatientDashboard() {
               value={severity}
               onChange={(e) => setSeverity(e.target.value)}
             >
-              <option value="CRITICAL">🚨 CRITICAL (Cardiac, Trauma, Stroke, Respiratory Arrest)</option>
-              <option value="MEDIUM">⚠️ MEDIUM (Urgent Admission / Severe Symptoms)</option>
-              <option value="LOW">ℹ️ LOW (Stable / Scheduled Emergency Check)</option>
+              <option value="CRITICAL">CRITICAL — Immediate Life Threat (Cardiac, Trauma, Stroke, Respiratory Arrest)</option>
+              <option value="MEDIUM">MEDIUM — Urgent Admission / Severe Symptoms</option>
+              <option value="LOW">LOW — Stable / Scheduled Emergency Check</option>
             </select>
           </FormField>
 

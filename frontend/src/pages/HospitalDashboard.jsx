@@ -263,11 +263,11 @@ export default function HospitalDashboard() {
   }
 
   const tabsConfig = [
-    { id: 'resources', label: 'Beds & Life Support', icon: '🛏️' },
-    { id: 'admissions', label: 'Admissions Queue', icon: '🚨', count: admissions.filter(a => a.status === 'PENDING').length || undefined },
-    { id: 'doctors', label: 'Doctors Roster', icon: '🧑‍⚕️', count: hospital?.doctors?.length },
-    { id: 'waiting-time', label: 'Department Wait Times', icon: '⏱️' },
-    { id: 'profile', label: 'Facility Profile', icon: '⚙️' },
+    { id: 'resources', label: 'Beds & Capacity' },
+    { id: 'admissions', label: 'Admissions Queue', count: admissions.filter(a => a.status === 'PENDING').length || undefined },
+    { id: 'doctors', label: 'Doctors Roster', count: hospital?.doctors?.length },
+    { id: 'waiting-time', label: 'Department Wait Times' },
+    { id: 'profile', label: 'Facility Profile' },
   ];
 
   return (
@@ -403,7 +403,7 @@ export default function HospitalDashboard() {
                         <td>
                           <strong>{adm.patient_name || 'Patient'}</strong>
                           {adm.patient_phone && (
-                            <div className="muted" style={{ fontSize: '0.8rem' }}>📞 {adm.patient_phone}</div>
+                            <div className="muted" style={{ fontSize: '0.8rem' }}>Tel: {adm.patient_phone}</div>
                           )}
                         </td>
                         <td>

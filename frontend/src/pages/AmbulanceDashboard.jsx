@@ -284,7 +284,7 @@ export default function AmbulanceDashboard() {
             variant={sharingLocation ? 'danger' : 'primary'}
             onClick={toggleShareLocation}
           >
-            <span>{sharingLocation ? '🛑 Stop Broadcasting' : '📡 Start Live Broadcasting'}</span>
+            <span>{sharingLocation ? 'Stop Broadcasting' : 'Start Live Broadcasting'}</span>
           </Button>
         </div>
 
@@ -353,7 +353,7 @@ export default function AmbulanceDashboard() {
               <span className="badge badge-danger">Active Emergency Mission</span>
               <h3>Trip #{activeTrip.request_id} — {activeTrip.pickup_location}</h3>
               <p className="muted">
-                Patient Contact: {activeTrip.patient_name || 'Emergency Patient'} · 📞 {activeTrip.patient_phone || 'N/A'}
+                Patient Contact: {activeTrip.patient_name || 'Emergency Patient'} · Tel: {activeTrip.patient_phone || 'N/A'}
               </p>
             </div>
             <div className="trip-stage-controls">
@@ -364,7 +364,7 @@ export default function AmbulanceDashboard() {
                     size="md"
                     onClick={() => handleTripAction(activeTrip.request_id, 'EN_ROUTE')}
                   >
-                    🚗 Start Trip (En Route)
+                    Start Trip (En Route)
                   </Button>
                   <Button
                     variant="danger"
@@ -381,7 +381,7 @@ export default function AmbulanceDashboard() {
                   size="md"
                   onClick={() => handleTripAction(activeTrip.request_id, 'COMPLETED')}
                 >
-                  ✓ Complete Mission
+                  Complete Mission
                 </Button>
               )}
             </div>

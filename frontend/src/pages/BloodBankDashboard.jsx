@@ -208,9 +208,9 @@ export default function BloodBankDashboard() {
   const missingGroups = ALL_BLOOD_GROUPS.filter((g) => !existingGroups.has(g));
 
   const tabsConfig = [
-    { id: 'inventory', label: 'Blood Inventory Grid', icon: '🩸', count: inventory.length },
-    { id: 'reservations', label: 'Patient Reservations', icon: '📋', count: reservations.filter(r => r.status === 'PENDING').length || undefined },
-    { id: 'profile', label: 'Facility Profile', icon: '⚙️' },
+    { id: 'inventory', label: 'Blood Inventory', count: inventory.length },
+    { id: 'reservations', label: 'Patient Reservations', count: reservations.filter(r => r.status === 'PENDING').length || undefined },
+    { id: 'profile', label: 'Facility Profile' },
   ];
 
   return (
@@ -341,7 +341,7 @@ export default function BloodBankDashboard() {
                         <td>
                           <strong>{res.patient_name || 'Patient'}</strong>
                           {res.patient_phone && (
-                            <div className="muted" style={{ fontSize: '0.8rem' }}>📞 {res.patient_phone}</div>
+                            <div className="muted" style={{ fontSize: '0.8rem' }}>Tel: {res.patient_phone}</div>
                           )}
                         </td>
                         <td>
