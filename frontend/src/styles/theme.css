@@ -1,0 +1,114 @@
+:root {
+  /* Brand Color: Teal */
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-active: #134e4a;
+  --primary-subtle: #ccfbf1;
+  --primary-content: #ffffff;
+
+  /* Semantic Colors */
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-subtle: #fee2e2;
+  --danger-text: #991b1b;
+
+  --warning: #d97706;
+  --warning-hover: #b45309;
+  --warning-subtle: #fef3c7;
+  --warning-text: #92400e;
+
+  --success: #16a34a;
+  --success-hover: #15803d;
+  --success-subtle: #dcfce7;
+  --success-text: #166534;
+
+  --info: #2563eb;
+  --info-hover: #1d4ed8;
+  --info-subtle: #dbeafe;
+  --info-text: #1e40af;
+
+  /* Light Theme Defaults */
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-muted: #f1f5f9;
+  --bg-input: #ffffff;
+
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  --border: #e2e8f0;
+  --border-focus: #0f766e;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Typography Scale */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Spacing Scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Aliases for cross-component compatibility */
+  --color-primary: var(--primary);
+  --color-text: var(--text-main);
+  --color-text-secondary: var(--text-muted);
+  --color-surface: var(--bg-card);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --card-bg: var(--bg-card);
+  --bg: var(--bg-page);
+  --text: var(--text-main);
+  --muted: var(--text-muted);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: #0b0f19;
+    --bg-card: #131c2e;
+    --bg-card-hover: #1e293b;
+    --bg-muted: #1e293b;
+    --bg-input: #0f172a;
+
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-inverse: #0f172a;
+
+    --border: #334155;
+    --border-focus: #14b8a6;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+
+    --primary-subtle: #134e4a;
+    --danger-subtle: #450a0a;
+    --danger-text: #fca5a5;
+    --warning-subtle: #451a03;
+    --warning-text: #fcd34d;
+    --success-subtle: #052e16;
+    --success-text: #86efac;
+    --info-subtle: #172554;
+    --info-text: #93c5fd;
+  }
+}

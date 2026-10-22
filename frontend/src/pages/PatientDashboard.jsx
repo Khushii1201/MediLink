@@ -1,246 +1,246 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { Tabs } from '../components/Tabs';
+import { Modal } from '../components/Modal';
+import { FormField } from '../components/FormField';
+import { Button } from '../components/Button';
 
-const TABS = ['Search & Recommend', 'Admissions', 'Ambulance', 'Blood Bank'];
+import FindCareTab from './patient/FindCareTab';
+import AdmissionsTab from './patient/AdmissionsTab';
+import AmbulanceTab from './patient/AmbulanceTab';
+import BloodTab from './patient/BloodTab';
 
 export default function PatientDashboard() {
-  const [tab, setTab] = useState(TABS[0]);
-  return (
-    <div className="page">
-      <h2>Patient dashboard</h2>
-      <div className="tabs">
-        {TABS.map((t) => (
-          <button key={t} className={tab === t ? 'tab active' : 'tab'} onClick={() => setTab(t)}>{t}</button>
-        ))}
-      </div>
-      {tab === 'Search & Recommend' && <SearchAndRecommend />}
-      {tab === 'Admissions' && <Admissions />}
-      {tab === 'Ambulance' && <Ambulance />}
-      {tab === 'Blood Bank' && <BloodBank />}
-    </div>
-  );
-}
+  const { user } = useAuth();
+  const { addToast } = useToast();
+  const { coords } = useGeolocation(true);
 
-function SearchAndRecommend() {
-  const [hospitals, setHospitals] = useState([]);
-  const [recs, setRecs] = useState(null);
-  const [error, setError] = useState('');
-  const [coords, setCoords] = useState(null);
+  const [activeTab, setActiveTab] = useState('find-care');
+  const [admissions, setAdmissions] = useState([]);
+  const [ambulanceRequests, setAmbulanceRequests] = useState([]);
+  const [reservations, setReservations] = useState([]);
+  const [hospitalsList, setHospitalsList] = useState([]);
 
-  useEffect(() => {
-    api.searchHospitals({}).then(setHospitals).catch((e) => setError(e.message));
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => setCoords({ lat: 28.6139, lng: 77.2090 }) // Delhi fallback
-    );
+  // Admission request modal state
+  const [admissionModalOpen, setAdmissionModalOpen] = useState(false);
+  const [targetHospital, setTargetHospital] = useState(null);
+  const [reason, setReason] = useState('');
+  const [severity, setSeverity] = useState('MEDIUM');
+  const [preferredDept, setPreferredDept] = useState('');
+  const [submittingAdmission, setSubmittingAdmission] = useState(false);
+
+  const loadPatientData = useCallback(async () => {
+    try {
+      const [admData, ambData, resData, hospData] = await Promise.all([
+        api.myAdmissions().catch(() => []),
+        api.myAmbulanceRequests().catch(() => []),
+        api.myReservations().catch(() => []),
+        api.searchHospitals().catch(() => []),
+      ]);
+      setAdmissions(admData || []);
+      setAmbulanceRequests(ambData || []);
+      setReservations(resData || []);
+      setHospitalsList(hospData || []);
+    } catch (err) {
+      console.error('Failed to load patient data:', err);
+    }
   }, []);
 
-  async function getRecommendations() {
-    try {
-      const params = coords || { lat: 28.6139, lng: 77.2090 };
-      const data = await api.getRecommendations(params);
-      setRecs(data);
-    } catch (e) {
-      setError(e.message);
+  useEffect(() => {
+    loadPatientData();
+  }, [loadPatientData]);
+
+  const handleOpenNewAdmission = (prefillHospital = null) => {
+    if (prefillHospital) {
+      setTargetHospital(prefillHospital);
+    } else if (hospitalsList.length > 0) {
+      setTargetHospital(hospitalsList[0]);
     }
-  }
+    setReason('');
+    setSeverity('MEDIUM');
+    setPreferredDept('');
+    setAdmissionModalOpen(true);
+  };
+
+  const handleAdmissionSubmit = async (e) => {
+    e.preventDefault();
+    if (!targetHospital?.hospital_id) {
+      addToast('Please select a hospital', 'error');
+      return;
+    }
+    if (!reason.trim()) {
+      addToast('Please describe the admission reason', 'error');
+      return;
+    }
+
+    setSubmittingAdmission(true);
+    try {
+      await api.requestAdmission({
+        hospital_id: targetHospital.hospital_id,
+        reason: reason.trim(),
+        severity,
+        preferred_department: preferredDept.trim() || undefined,
+      });
+      addToast('Emergency admission request submitted to hospital queue!', 'success');
+      setAdmissionModalOpen(false);
+      loadPatientData();
+      setActiveTab('admissions');
+    } catch (err) {
+      addToast(err.message || 'Failed to submit admission request', 'error');
+    } finally {
+      setSubmittingAdmission(false);
+    }
+  };
+
+  const tabsConfig = [
+    { id: 'find-care', label: 'Find Care & Recommendations', icon: '🧠' },
+    { id: 'admissions', label: 'My Admissions', icon: '🏥', count: admissions.length },
+    { id: 'ambulance', label: 'Emergency Ambulance', icon: '🚑', count: ambulanceRequests.filter(r => ['REQUESTED', 'ACCEPTED', 'EN_ROUTE'].includes(r.status)).length || undefined },
+    { id: 'blood', label: 'Blood Units & Reservations', icon: '🩸', count: reservations.length },
+  ];
 
   return (
-    <div>
-      <div className="panel">
-        <h3>AI-assisted hospital recommendation</h3>
-        <p className="muted">Ranks hospitals using distance, bed availability, and waiting time. Estimates only — not a clinical decision.</p>
-        <button className="btn-primary" onClick={getRecommendations}>Get recommendations</button>
-        {recs && (
-          <table className="table">
-            <thead><tr><th>Hospital</th><th>Distance</th><th>Beds</th><th>Avg wait</th><th>Score</th></tr></thead>
-            <tbody>
-              {recs.recommendations.map((r) => (
-                <tr key={r.hospital_id}>
-                  <td>{r.name}</td>
-                  <td>{r.distance_km ?? '—'} km</td>
-                  <td>{r.bed_availability}</td>
-                  <td>{r.avg_waiting_minutes} min</td>
-                  <td><strong>{r.score}</strong></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="page patient-dashboard-page">
+      <div className="dashboard-banner card">
+        <div className="banner-greeting">
+          <span className="badge badge-success">Patient Portal</span>
+          <h2>Welcome, {user?.name || 'Patient'}</h2>
+          <p className="muted">
+            Coordinate healthcare resources across Delhi NCR. Pinpoint available beds, track ambulances, and reserve blood.
+          </p>
+        </div>
+        <div className="banner-quick-actions">
+          <Button variant="danger" size="md" onClick={() => setActiveTab('ambulance')}>
+            <span>🚨 Dispatch Ambulance</span>
+          </Button>
+          <Button variant="outline" size="md" onClick={() => handleOpenNewAdmission()}>
+            <span>+ Request Admission</span>
+          </Button>
+        </div>
+      </div>
+
+      <div className="dashboard-tabs-container">
+        <Tabs tabs={tabsConfig} activeTab={activeTab} onChange={setActiveTab} />
+      </div>
+
+      <div className="dashboard-tab-content">
+        {activeTab === 'find-care' && (
+          <FindCareTab
+            coords={coords}
+            onRequestAdmission={handleOpenNewAdmission}
+          />
+        )}
+
+        {activeTab === 'admissions' && (
+          <AdmissionsTab
+            admissions={admissions}
+            onRefresh={loadPatientData}
+            onOpenNewRequest={() => handleOpenNewAdmission()}
+          />
+        )}
+
+        {activeTab === 'ambulance' && (
+          <AmbulanceTab
+            coords={coords}
+            requests={ambulanceRequests}
+            onRefresh={loadPatientData}
+          />
+        )}
+
+        {activeTab === 'blood' && (
+          <BloodTab
+            coords={coords}
+            reservations={reservations}
+            onRefresh={loadPatientData}
+          />
         )}
       </div>
 
-      <div className="panel">
-        <h3>Hospitals</h3>
-        {error && <p className="error">{error}</p>}
-        <div className="card-grid">
-          {hospitals.map((h) => <HospitalCard key={h.hospital_id} hospital={h} />)}
-        </div>
-      </div>
-    </div>
-  );
-}
+      {/* Emergency Admission Request Modal */}
+      <Modal
+        isOpen={admissionModalOpen}
+        onClose={() => setAdmissionModalOpen(false)}
+        title="Submit Emergency Admission Request"
+      >
+        <form onSubmit={handleAdmissionSubmit}>
+          <FormField label="Target Hospital" id="adm-hosp" required>
+            <select
+              id="adm-hosp"
+              className="form-input"
+              value={targetHospital?.hospital_id || ''}
+              onChange={(e) => {
+                const h = hospitalsList.find((x) => x.hospital_id === Number(e.target.value));
+                setTargetHospital(h || null);
+              }}
+              required
+            >
+              {hospitalsList.map((h) => (
+                <option key={h.hospital_id} value={h.hospital_id}>
+                  {h.name} — {h.address}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-function HospitalCard({ hospital }) {
-  const [reason, setReason] = useState('');
-  const [status, setStatus] = useState('');
+          <FormField
+            label="Triage Severity Level"
+            id="adm-severity"
+            required
+            hint="CRITICAL requests receive immediate priority at the top of the hospital queue"
+          >
+            <select
+              id="adm-severity"
+              className="form-input"
+              value={severity}
+              onChange={(e) => setSeverity(e.target.value)}
+            >
+              <option value="CRITICAL">🚨 CRITICAL (Cardiac, Trauma, Stroke, Respiratory Arrest)</option>
+              <option value="MEDIUM">⚠️ MEDIUM (Urgent Admission / Severe Symptoms)</option>
+              <option value="LOW">ℹ️ LOW (Stable / Scheduled Emergency Check)</option>
+            </select>
+          </FormField>
 
-  async function requestAdmission() {
-    try {
-      await api.requestAdmission({ hospital_id: hospital.hospital_id, reason });
-      setStatus('Admission request submitted.');
-      setReason('');
-    } catch (e) {
-      setStatus(e.message);
-    }
-  }
+          <FormField label="Preferred Department (Optional)" id="adm-pref-dept">
+            <input
+              type="text"
+              id="adm-pref-dept"
+              className="form-input"
+              placeholder="e.g. Emergency, Cardiology, Trauma, ICU"
+              value={preferredDept}
+              onChange={(e) => setPreferredDept(e.target.value)}
+            />
+          </FormField>
 
-  return (
-    <div className="card">
-      <h3>{hospital.name}</h3>
-      <p className="muted">{hospital.address}</p>
-      <p className="muted">{hospital.specialties}</p>
-      <div className="resource-row">
-        {hospital.resources?.map((r) => <span key={r.type} className="pill">{r.type}: {r.available}/{r.total}</span>)}
-      </div>
-      <div className="inline-form">
-        <input placeholder="Reason for admission" value={reason} onChange={(e) => setReason(e.target.value)} />
-        <button className="btn-secondary" onClick={requestAdmission} disabled={!reason}>Request admission</button>
-      </div>
-      {status && <p className="hint">{status}</p>}
-    </div>
-  );
-}
+          <FormField
+            label="Reason for Admission / Clinical Symptoms"
+            id="adm-reason-text"
+            required
+            hint="Describe symptoms, vital conditions, or trauma details"
+          >
+            <textarea
+              id="adm-reason-text"
+              className="form-input"
+              rows={4}
+              placeholder="e.g. Severe chest pain radiating to left arm, shortness of breath, onset 30 mins ago..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              required
+            />
+          </FormField>
 
-function Admissions() {
-  const [rows, setRows] = useState([]);
-  const [error, setError] = useState('');
-
-  const load = () => api.myAdmissions().then(setRows).catch((e) => setError(e.message));
-  useEffect(() => { load(); }, []);
-
-  return (
-    <div className="panel">
-      <h3>My admission requests</h3>
-      {error && <p className="error">{error}</p>}
-      <table className="table">
-        <thead><tr><th>Hospital</th><th>Reason</th><th>Status</th><th>Requested</th></tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.admission_id}>
-              <td>{r.hospital_name}</td><td>{r.reason}</td>
-              <td><span className={`badge ${r.status.toLowerCase()}`}>{r.status}</span></td>
-              <td>{new Date(r.created_at).toLocaleString()}</td>
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><td colSpan={4} className="muted">No requests yet.</td></tr>}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function Ambulance() {
-  const [rows, setRows] = useState([]);
-  const [pickup, setPickup] = useState('');
-  const [error, setError] = useState('');
-
-  const load = () => api.myAmbulanceRequests().then(setRows).catch((e) => setError(e.message));
-  useEffect(() => { load(); }, []);
-
-  async function submit() {
-    try {
-      await api.requestAmbulance(pickup);
-      setPickup('');
-      load();
-    } catch (e) { setError(e.message); }
-  }
-
-  return (
-    <div className="panel">
-      <h3>Request an ambulance</h3>
-      <div className="inline-form">
-        <input placeholder="Pickup location" value={pickup} onChange={(e) => setPickup(e.target.value)} />
-        <button className="btn-primary" onClick={submit} disabled={!pickup}>Request</button>
-      </div>
-      {error && <p className="error">{error}</p>}
-      <table className="table">
-        <thead><tr><th>Pickup</th><th>Status</th><th>Ambulance</th><th>Requested</th></tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.request_id}>
-              <td>{r.pickup_location}</td>
-              <td><span className={`badge ${r.status.toLowerCase()}`}>{r.status}</span></td>
-              <td>{r.ambulance ? `${r.ambulance.vehicle_no} (${r.ambulance.status})` : 'Not yet assigned'}</td>
-              <td>{new Date(r.created_at).toLocaleString()}</td>
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><td colSpan={4} className="muted">No ambulance requests yet.</td></tr>}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function BloodBank() {
-  const [group, setGroup] = useState('');
-  const [units, setUnits] = useState([]);
-  const [reservations, setReservations] = useState([]);
-  const [error, setError] = useState('');
-
-  const loadReservations = () => api.myReservations().then(setReservations).catch((e) => setError(e.message));
-  useEffect(() => { loadReservations(); }, []);
-
-  async function search() {
-    try { setUnits(await api.searchBloodUnits(group)); } catch (e) { setError(e.message); }
-  }
-
-  async function reserve(unitId) {
-    try {
-      await api.reserveBlood(unitId, 1);
-      loadReservations();
-    } catch (e) { setError(e.message); }
-  }
-
-  return (
-    <div>
-      <div className="panel">
-        <h3>Blood availability</h3>
-        <div className="inline-form">
-          <select value={group} onChange={(e) => setGroup(e.target.value)}>
-            <option value="">All groups</option>
-            {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => <option key={g} value={g}>{g}</option>)}
-          </select>
-          <button className="btn-primary" onClick={search}>Search</button>
-        </div>
-        {error && <p className="error">{error}</p>}
-        <table className="table">
-          <thead><tr><th>Blood bank</th><th>Group</th><th>Available</th><th></th></tr></thead>
-          <tbody>
-            {units.map((u) => (
-              <tr key={u.unit_id}>
-                <td>{u.bloodbank_name}</td><td>{u.blood_group}</td><td>{u.available}</td>
-                <td><button className="btn-secondary" disabled={u.available < 1} onClick={() => reserve(u.unit_id)}>Reserve 1 unit</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="panel">
-        <h3>My reservations</h3>
-        <table className="table">
-          <thead><tr><th>Group</th><th>Blood bank</th><th>Units</th><th>Status</th></tr></thead>
-          <tbody>
-            {reservations.map((r) => (
-              <tr key={r.reservation_id}>
-                <td>{r.blood_group}</td><td>{r.bloodbank_name}</td><td>{r.units_requested}</td>
-                <td><span className={`badge ${r.status.toLowerCase()}`}>{r.status}</span></td>
-              </tr>
-            ))}
-            {reservations.length === 0 && <tr><td colSpan={4} className="muted">No reservations yet.</td></tr>}
-          </tbody>
-        </table>
-      </div>
+          <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+            <Button variant="secondary" onClick={() => setAdmissionModalOpen(false)} disabled={submittingAdmission}>
+              Cancel
+            </Button>
+            <Button variant="danger" type="submit" loading={submittingAdmission}>
+              Submit Request to Hospital
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

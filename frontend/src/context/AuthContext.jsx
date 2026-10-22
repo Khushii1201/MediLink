@@ -1,12 +1,38 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-
-const AuthContext = createContext(null);
+import { useState, useEffect, useCallback } from 'react';
+import { api } from '../api';
+import { AuthContext } from './authContextDef';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem('medilink_user');
     return raw ? JSON.parse(raw) : null;
   });
+  const [loading, setLoading] = useState(true);
+
+  // Validate stored token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('medilink_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    api.getMe()
+      .then((res) => {
+        if (res.user) {
+          localStorage.setItem('medilink_user', JSON.stringify(res.user));
+          setUser(res.user);
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem('medilink_token');
+        localStorage.removeItem('medilink_user');
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const login = useCallback((token, userData) => {
     localStorage.setItem('medilink_token', token);
@@ -21,14 +47,8 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

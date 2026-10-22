@@ -1,270 +1,1146 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { api } from '../api';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
+import Card from '../components/Card';
+import Button from '../components/Button';
+import Badge from '../components/Badge';
+import Modal from '../components/Modal';
+import Tabs from '../components/Tabs';
+import StatCard from '../components/StatCard';
+import FormField from '../components/FormField';
+import EmptyState from '../components/EmptyState';
+import Spinner from '../components/Spinner';
 
 export default function AdminDashboard() {
+  const { user: currentUser } = useAuth();
+  const { showToast } = useToast();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
+
+  // Data states
   const [analytics, setAnalytics] = useState(null);
   const [users, setUsers] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [ambulances, setAmbulances] = useState([]);
-  const [banks, setBanks] = useState([]);
-  const [units, setUnits] = useState([]);
-  const [admissions, setAdmissions] = useState([]);
-  const [ambulanceRequests, setAmbulanceRequests] = useState([]);
-  const [reservations, setReservations] = useState([]);
-  const [newHospital, setNewHospital] = useState({ name: '', address: '', latitude: '', longitude: '', specialties: '' });
-  const [newAmbulance, setNewAmbulance] = useState({ vehicle_no: '' });
-  const [newBank, setNewBank] = useState({ name: '', address: '' });
-  const [error, setError] = useState('');
+  const [bloodBanks, setBloodBanks] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
 
-  const load = () => {
-    api.adminAnalytics().then(setAnalytics).catch((e) => setError(e.message));
-    api.adminUsers().then(setUsers).catch((e) => setError(e.message));
-    api.searchHospitals({}).then(setHospitals).catch((e) => setError(e.message));
-    api.listAmbulances().then(setAmbulances).catch((e) => setError(e.message));
-    api.listBloodBanks().then(setBanks).catch((e) => setError(e.message));
-    api.searchBloodUnits().then(setUnits).catch((e) => setError(e.message));
-    api.myAdmissions().then(setAdmissions).catch((e) => setError(e.message));
-    api.myAmbulanceRequests().then(setAmbulanceRequests).catch((e) => setError(e.message));
-    api.myReservations().then(setReservations).catch((e) => setError(e.message));
-  };
-  useEffect(() => { load(); }, []);
+  // Modals & form states
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [staffForm, setStaffForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    role: 'HOSPITAL',
+    hospital_id: '',
+    ambulance_id: '',
+    bloodbank_id: '',
+  });
 
-  async function removeUser(id) {
-    if (!confirm('Remove this user?')) return;
-    try { await api.adminDeleteUser(id); load(); } catch (e) { setError(e.message); }
-  }
+  const [showHospitalModal, setShowHospitalModal] = useState(false);
+  const [editingHospital, setEditingHospital] = useState(null);
+  const [hospitalForm, setHospitalForm] = useState({
+    name: '',
+    address: '',
+    city: 'New Delhi',
+    latitude: '28.6139',
+    longitude: '77.2090',
+    phone: '',
+    email: '',
+    description: '',
+    specialties: 'General Medicine, Emergency',
+  });
 
-  async function createHospital(event) {
-    event.preventDefault();
+  const [showAmbulanceModal, setShowAmbulanceModal] = useState(false);
+  const [ambulanceForm, setAmbulanceForm] = useState({
+    vehicle_no: '',
+    driver_name: '',
+    driver_phone: '',
+    latitude: '28.6139',
+    longitude: '77.2090',
+  });
+
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankForm, setBankForm] = useState({
+    name: '',
+    address: '',
+    city: 'New Delhi',
+    latitude: '28.6139',
+    longitude: '77.2090',
+    phone: '',
+  });
+
+  // Filters
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('ALL');
+  const [auditEntityFilter, setAuditEntityFilter] = useState('ALL');
+  const [saving, setSaving] = useState(false);
+
+  const loadData = useCallback(async () => {
     try {
-      await api.createHospital({ ...newHospital, latitude: newHospital.latitude ? Number(newHospital.latitude) : null, longitude: newHospital.longitude ? Number(newHospital.longitude) : null });
-      setNewHospital({ name: '', address: '', latitude: '', longitude: '', specialties: '' });
-      load();
-    } catch (e) { setError(e.message); }
-  }
+      setLoading(true);
+      const [anData, uData, hData, aData, bData, auditData] = await Promise.all([
+        api.adminAnalytics().catch(() => null),
+        api.adminUsers().catch(() => []),
+        api.searchHospitals({}).catch(() => []),
+        api.listAmbulances().catch(() => []),
+        api.listBloodBanks().catch(() => []),
+        api.adminAuditLogs({ limit: 100 }).catch(() => []),
+      ]);
+      setAnalytics(anData);
+      setUsers(uData);
+      setHospitals(hData);
+      setAmbulances(aData);
+      setBloodBanks(bData);
+      setAuditLogs(auditData);
+    } catch (err) {
+      showToast(err.message || 'Failed to load admin data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
 
-  async function createAmbulance(event) {
-    event.preventDefault();
-    try { await api.createAmbulance(newAmbulance); setNewAmbulance({ vehicle_no: '' }); load(); }
-    catch (e) { setError(e.message); }
-  }
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-  async function createBank(event) {
-    event.preventDefault();
-    try { await api.createBloodBank(newBank); setNewBank({ name: '', address: '' }); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Tab definitions
+  const tabs = [
+    { id: 'overview', label: 'System Overview' },
+    { id: 'users', label: `Users (${users.length})` },
+    { id: 'hospitals', label: `Hospitals (${hospitals.length})` },
+    { id: 'ambulances', label: `Ambulances (${ambulances.length})` },
+    { id: 'blood_banks', label: `Blood Banks (${bloodBanks.length})` },
+    { id: 'audit', label: 'Audit Trail' },
+  ];
 
-  async function saveHospital(hospital) {
-    try { await api.updateHospitalProfile(hospital.hospital_id, hospital); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Helper mappings
+  const hospitalMap = useMemo(() => new Map(hospitals.map((h) => [h.hospital_id, h.name])), [hospitals]);
+  const ambulanceMap = useMemo(() => new Map(ambulances.map((a) => [a.ambulance_id, a.vehicle_no])), [ambulances]);
+  const bloodBankMap = useMemo(() => new Map(bloodBanks.map((b) => [b.bloodbank_id, b.name])), [bloodBanks]);
 
-  async function saveAmbulance(ambulance) {
-    try { await api.updateAmbulanceProfile(ambulance.ambulance_id, ambulance); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Filtered users
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchSearch =
+        u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.email?.toLowerCase().includes(userSearch.toLowerCase());
+      const matchRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
+      return matchSearch && matchRole;
+    });
+  }, [users, userSearch, userRoleFilter]);
 
-  async function saveBank(bank) {
-    try { await api.updateBloodBank(bank.bloodbank_id, bank); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Filtered audit logs
+  const filteredAudit = useMemo(() => {
+    if (auditEntityFilter === 'ALL') return auditLogs;
+    return auditLogs.filter((log) => log.entity === auditEntityFilter);
+  }, [auditLogs, auditEntityFilter]);
 
-  async function changeAdmission(id, status) {
-    try { await api.updateAdmissionStatus(id, status); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Actions: User Management
+  const handleToggleUserStatus = async (user) => {
+    if (user.user_id === currentUser?.user_id) {
+      showToast('You cannot deactivate your own administrative account', 'error');
+      return;
+    }
+    const willDeactivate = user.active === 1;
+    if (!window.confirm(`Are you sure you want to ${willDeactivate ? 'deactivate' : 'reactivate'} ${user.name}?`)) {
+      return;
+    }
+    try {
+      if (willDeactivate) {
+        await api.adminDeactivateUser(user.user_id);
+        showToast(`User ${user.name} deactivated`, 'info');
+      } else {
+        await api.adminReactivateUser(user.user_id);
+        showToast(`User ${user.name} reactivated`, 'success');
+      }
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 
-  async function changeAmbulanceRequest(id, status) {
-    try { await api.updateAmbulanceRequest(id, status); load(); }
-    catch (e) { setError(e.message); }
-  }
+  const handleCreateStaff = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.adminCreateUser({
+        name: staffForm.name,
+        email: staffForm.email,
+        password: staffForm.password,
+        phone: staffForm.phone || null,
+        role: staffForm.role,
+        hospital_id: staffForm.role === 'HOSPITAL' ? Number(staffForm.hospital_id) : null,
+        ambulance_id: staffForm.role === 'AMBULANCE' ? Number(staffForm.ambulance_id) : null,
+        bloodbank_id: staffForm.role === 'BLOODBANK' ? Number(staffForm.bloodbank_id) : null,
+      });
+      showToast('Staff user provisioned successfully', 'success');
+      setShowStaffModal(false);
+      setStaffForm({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        role: 'HOSPITAL',
+        hospital_id: '',
+        ambulance_id: '',
+        bloodbank_id: '',
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  async function changeReservation(id, status) {
-    try { await api.updateReservation(id, status); load(); }
-    catch (e) { setError(e.message); }
-  }
+  // Actions: Hospital
+  const handleSaveHospital = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload = {
+        name: hospitalForm.name,
+        address: hospitalForm.address,
+        city: hospitalForm.city,
+        latitude: Number(hospitalForm.latitude),
+        longitude: Number(hospitalForm.longitude),
+        phone: hospitalForm.phone || null,
+        email: hospitalForm.email || null,
+        description: hospitalForm.description || null,
+        specialties: hospitalForm.specialties || '',
+      };
+      if (editingHospital) {
+        await api.updateHospitalProfile(editingHospital.hospital_id, payload);
+        showToast('Hospital updated successfully', 'success');
+      } else {
+        await api.createHospital(payload);
+        showToast('Hospital created successfully', 'success');
+      }
+      setShowHospitalModal(false);
+      setEditingHospital(null);
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  if (!analytics) return <div className="page">{error ? <p className="error">{error}</p> : 'Loading…'}</div>;
+  const handleDeleteHospital = async (hospital) => {
+    if (!window.confirm(`Delete ${hospital.name}? This will remove associated resources, doctors, and waiting times.`)) {
+      return;
+    }
+    try {
+      await api.deleteHospital(hospital.hospital_id);
+      showToast('Hospital deleted', 'info');
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Actions: Ambulance
+  const handleSaveAmbulance = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.createAmbulance({
+        vehicle_no: ambulanceForm.vehicle_no,
+        driver_name: ambulanceForm.driver_name,
+        driver_phone: ambulanceForm.driver_phone,
+        latitude: ambulanceForm.latitude ? Number(ambulanceForm.latitude) : null,
+        longitude: ambulanceForm.longitude ? Number(ambulanceForm.longitude) : null,
+      });
+      showToast('Ambulance created successfully', 'success');
+      setShowAmbulanceModal(false);
+      setAmbulanceForm({
+        vehicle_no: '',
+        driver_name: '',
+        driver_phone: '',
+        latitude: '28.6139',
+        longitude: '77.2090',
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAmbulance = async (amb) => {
+    if (!window.confirm(`Delete ambulance ${amb.vehicle_no}?`)) return;
+    try {
+      await api.adminDeleteAmbulance(amb.ambulance_id);
+      showToast('Ambulance deleted', 'info');
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  // Actions: Blood Bank
+  const handleSaveBank = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.createBloodBank({
+        name: bankForm.name,
+        address: bankForm.address,
+        city: bankForm.city,
+        latitude: bankForm.latitude ? Number(bankForm.latitude) : null,
+        longitude: bankForm.longitude ? Number(bankForm.longitude) : null,
+        phone: bankForm.phone || null,
+      });
+      showToast('Blood bank created successfully', 'success');
+      setShowBankModal(false);
+      setBankForm({
+        name: '',
+        address: '',
+        city: 'New Delhi',
+        latitude: '28.6139',
+        longitude: '77.2090',
+        phone: '',
+      });
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteBank = async (bank) => {
+    if (!window.confirm(`Delete blood bank ${bank.name}? Associated blood units will be removed.`)) return;
+    try {
+      await api.adminDeleteBloodBank(bank.bloodbank_id);
+      showToast('Blood bank deleted', 'info');
+      loadData();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  if (loading && !analytics) {
+    return (
+      <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>
+        <Spinner size="lg" message="Loading administrative dashboard..." />
+      </div>
+    );
+  }
 
   return (
-    <div className="page">
-      <h2>Administrator dashboard</h2>
-      {error && <p className="error">{error}</p>}
-
-      <div className="stat-grid">
-        <Stat label="Users" value={analytics.totals.users} />
-        <Stat label="Hospitals" value={analytics.totals.hospitals} />
-        <Stat label="Ambulances" value={analytics.totals.ambulances} />
-        <Stat label="Blood banks" value={analytics.totals.blood_banks} />
-      </div>
-
-      <div className="panel">
-        <h3>Provider directory</h3>
-        <h4>Hospitals</h4>
-        <table className="table"><thead><tr><th>Name</th><th>Address</th><th>Coordinates</th><th></th></tr></thead><tbody>
-          {hospitals.map((hospital) => <tr key={hospital.hospital_id}>
-            <td><input aria-label="Hospital name" value={hospital.name} onChange={(e) => setHospitals(hospitals.map((row) => row.hospital_id === hospital.hospital_id ? { ...row, name: e.target.value } : row))} /></td>
-            <td><input aria-label="Hospital address" value={hospital.address || ''} onChange={(e) => setHospitals(hospitals.map((row) => row.hospital_id === hospital.hospital_id ? { ...row, address: e.target.value } : row))} /></td>
-            <td>{hospital.latitude ?? '—'}, {hospital.longitude ?? '—'}</td>
-            <td><button className="btn-secondary" onClick={() => saveHospital(hospital)}>Save</button></td>
-          </tr>)}
-        </tbody></table>
-        <form className="inline-form" onSubmit={createHospital}>
-          <input aria-label="New hospital name" placeholder="Hospital name" value={newHospital.name} onChange={(e) => setNewHospital({ ...newHospital, name: e.target.value })} required />
-          <input aria-label="New hospital address" placeholder="Address" value={newHospital.address} onChange={(e) => setNewHospital({ ...newHospital, address: e.target.value })} />
-          <input aria-label="Hospital latitude" type="number" step="any" placeholder="Latitude" value={newHospital.latitude} onChange={(e) => setNewHospital({ ...newHospital, latitude: e.target.value })} />
-          <input aria-label="Hospital longitude" type="number" step="any" placeholder="Longitude" value={newHospital.longitude} onChange={(e) => setNewHospital({ ...newHospital, longitude: e.target.value })} />
-          <input aria-label="Hospital specialties" placeholder="Specialties" value={newHospital.specialties} onChange={(e) => setNewHospital({ ...newHospital, specialties: e.target.value })} />
-          <button className="btn-primary">Add hospital</button>
-        </form>
-
-        <h4>Ambulance fleet</h4>
-        <table className="table"><thead><tr><th>Vehicle</th><th>Status</th><th>Location</th><th></th></tr></thead><tbody>
-          {ambulances.map((ambulance) => <tr key={ambulance.ambulance_id}>
-            <td><input aria-label="Vehicle number" value={ambulance.vehicle_no} onChange={(e) => setAmbulances(ambulances.map((row) => row.ambulance_id === ambulance.ambulance_id ? { ...row, vehicle_no: e.target.value } : row))} /></td>
-            <td><select aria-label="Ambulance status" value={ambulance.status} onChange={(e) => setAmbulances(ambulances.map((row) => row.ambulance_id === ambulance.ambulance_id ? { ...row, status: e.target.value } : row))}><option>AVAILABLE</option><option>ON_TRIP</option><option>OFFLINE</option></select></td>
-            <td>{ambulance.latitude ?? '—'}, {ambulance.longitude ?? '—'}</td>
-            <td><button className="btn-secondary" onClick={() => saveAmbulance(ambulance)}>Save</button></td>
-          </tr>)}
-        </tbody></table>
-        <form className="inline-form" onSubmit={createAmbulance}>
-          <input aria-label="New vehicle number" placeholder="Vehicle number" value={newAmbulance.vehicle_no} onChange={(e) => setNewAmbulance({ vehicle_no: e.target.value })} required />
-          <button className="btn-primary">Add ambulance</button>
-        </form>
-
-        <h4>Blood banks</h4>
-        <table className="table"><thead><tr><th>Name</th><th>Address</th><th></th></tr></thead><tbody>
-          {banks.map((bank) => <tr key={bank.bloodbank_id}>
-            <td><input aria-label="Blood bank name" value={bank.name} onChange={(e) => setBanks(banks.map((row) => row.bloodbank_id === bank.bloodbank_id ? { ...row, name: e.target.value } : row))} /></td>
-            <td><input aria-label="Blood bank address" value={bank.address || ''} onChange={(e) => setBanks(banks.map((row) => row.bloodbank_id === bank.bloodbank_id ? { ...row, address: e.target.value } : row))} /></td>
-            <td><button className="btn-secondary" onClick={() => saveBank(bank)}>Save</button></td>
-          </tr>)}
-        </tbody></table>
-        <form className="inline-form" onSubmit={createBank}>
-          <input aria-label="New blood bank name" placeholder="Blood bank name" value={newBank.name} onChange={(e) => setNewBank({ ...newBank, name: e.target.value })} required />
-          <input aria-label="New blood bank address" placeholder="Address" value={newBank.address} onChange={(e) => setNewBank({ ...newBank, address: e.target.value })} />
-          <button className="btn-primary">Add blood bank</button>
-        </form>
-      </div>
-
-      <div className="panel">
-        <h3>System operations</h3>
-        <h4>Admission requests</h4>
-        <table className="table"><thead><tr><th>Patient</th><th>Hospital</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {admissions.map((row) => <tr key={row.admission_id}><td>{row.patient_name}</td><td>{row.hospital_name}</td><td>{row.reason}</td><td>{row.status}</td><td>
-            {row.status === 'PENDING' && <><button className="btn-secondary" onClick={() => changeAdmission(row.admission_id, 'ACCEPTED')}>Accept</button><button className="btn-link" onClick={() => changeAdmission(row.admission_id, 'REJECTED')}>Reject</button></>}
-            {row.status === 'ACCEPTED' && <button className="btn-secondary" onClick={() => changeAdmission(row.admission_id, 'COMPLETED')}>Complete</button>}
-          </td></tr>)}
-          {!admissions.length && <tr><td colSpan={5} className="muted">No admission requests.</td></tr>}
-        </tbody></table>
-
-        <h4>Ambulance requests</h4>
-        <table className="table"><thead><tr><th>Pickup</th><th>Vehicle</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {ambulanceRequests.map((row) => <tr key={row.request_id}><td>{row.pickup_location}</td><td>{row.ambulance?.vehicle_no || 'Unassigned'}</td><td>{row.status}</td><td>
-            {row.status === 'REQUESTED' && <button className="btn-secondary" onClick={() => changeAmbulanceRequest(row.request_id, 'ACCEPTED')}>Accept</button>}
-            {row.status === 'ACCEPTED' && <button className="btn-secondary" onClick={() => changeAmbulanceRequest(row.request_id, 'EN_ROUTE')}>Start</button>}
-            {row.status === 'EN_ROUTE' && <button className="btn-secondary" onClick={() => changeAmbulanceRequest(row.request_id, 'COMPLETED')}>Complete</button>}
-            {!['COMPLETED', 'CANCELLED'].includes(row.status) && <button className="btn-link" onClick={() => changeAmbulanceRequest(row.request_id, 'CANCELLED')}>Cancel</button>}
-          </td></tr>)}
-          {!ambulanceRequests.length && <tr><td colSpan={4} className="muted">No ambulance requests.</td></tr>}
-        </tbody></table>
-
-        <h4>Blood reservations</h4>
-        <table className="table"><thead><tr><th>Patient</th><th>Blood group</th><th>Units</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {reservations.map((row) => <tr key={row.reservation_id}><td>{row.patient_name}</td><td>{row.blood_group}</td><td>{row.units_requested}</td><td>{row.status}</td><td>
-            {row.status === 'PENDING' && <><button className="btn-secondary" onClick={() => changeReservation(row.reservation_id, 'APPROVED')}>Approve</button><button className="btn-link" onClick={() => changeReservation(row.reservation_id, 'REJECTED')}>Reject</button></>}
-            {row.status === 'APPROVED' && <button className="btn-secondary" onClick={() => changeReservation(row.reservation_id, 'FULFILLED')}>Fulfill</button>}
-          </td></tr>)}
-          {!reservations.length && <tr><td colSpan={5} className="muted">No blood reservations.</td></tr>}
-        </tbody></table>
-
-        <h4>Blood inventory</h4>
-        <table className="table"><thead><tr><th>Bank</th><th>Group</th><th>Quantity</th><th>Available</th><th></th></tr></thead><tbody>
-          {units.map((unit) => <AdminUnitRow key={unit.unit_id} unit={unit} onSave={async (patch) => { try { await api.updateBloodUnit(unit.unit_id, patch); load(); } catch (e) { setError(e.message); } }} />)}
-        </tbody></table>
-      </div>
-
-      <div className="panel">
-        <h3>Admissions by status</h3>
-        <StatusBars rows={analytics.admissionsByStatus} />
-      </div>
-      <div className="panel">
-        <h3>Ambulance requests by status</h3>
-        <StatusBars rows={analytics.ambulanceRequestsByStatus} />
-      </div>
-      <div className="panel">
-        <h3>Blood reservations by status</h3>
-        <StatusBars rows={analytics.reservationsByStatus} />
-      </div>
-
-      <div className="panel">
-        <h3>Hospital bed/ICU/ventilator occupancy</h3>
-        <table className="table">
-          <thead><tr><th>Hospital</th><th>Type</th><th>Total</th><th>Available</th><th>Occupancy</th></tr></thead>
-          <tbody>
-            {analytics.bedOccupancy.map((r, i) => (
-              <tr key={i}><td>{r.hospital_name}</td><td>{r.type}</td><td>{r.total}</td><td>{r.available}</td><td>{r.occupancy_pct}%</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="panel">
-        <h3>Average waiting time by hospital</h3>
-        <table className="table">
-          <thead><tr><th>Hospital</th><th>Avg minutes</th></tr></thead>
-          <tbody>
-            {analytics.avgWaitByHospital.map((r, i) => <tr key={i}><td>{r.hospital_name}</td><td>{r.avg_minutes}</td></tr>)}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="panel">
-        <h3>Registered users</h3>
-        <table className="table">
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.user_id}>
-                <td>{u.name}</td><td>{u.email}</td><td>{u.role}</td>
-                <td><button className="btn-link" onClick={() => removeUser(u.user_id)}>Remove</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }) {
-  return <div className="stat-card"><div className="stat-value">{value}</div><div className="stat-label">{label}</div></div>;
-}
-
-function StatusBars({ rows }) {
-  const max = Math.max(1, ...rows.map((r) => r.count));
-  return (
-    <div className="bar-chart">
-      {rows.map((r) => (
-        <div key={r.status} className="bar-row">
-          <span className="bar-label">{r.status}</span>
-          <div className="bar-track"><div className="bar-fill" style={{ width: `${(r.count / max) * 100}%` }} /></div>
-          <span className="bar-count">{r.count}</span>
+    <div className="container" style={{ padding: '32px 0 64px' }}>
+      {/* Header */}
+      <div className="flex-between" style={{ marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, margin: 0, color: 'var(--color-text)' }}>
+            System Administration
+          </h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+            Coordinate regional network resources, provision staff accounts, and monitor audit trails.
+          </p>
         </div>
-      ))}
-      {rows.length === 0 && <p className="muted">No data yet.</p>}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={loadData}>Refresh Data</Button>
+          <Button variant="primary" onClick={() => setShowStaffModal(true)}>+ Provision Staff</Button>
+        </div>
+      </div>
+
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && analytics && (
+        <div style={{ display: 'grid', gap: '24px' }}>
+          {/* KPI grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <StatCard label="Registered Users" value={analytics.totals.users} subtext="Patients and healthcare staff" />
+            <StatCard label="Active Hospitals" value={analytics.totals.hospitals} subtext="Partnered care facilities" />
+            <StatCard
+              label="Fleet Utilisation"
+              value={`${analytics.ambulanceUtilisation?.utilisation_pct || 0}%`}
+              subtext={`${analytics.ambulanceUtilisation?.on_trip || 0} / ${analytics.totals.ambulances} on active trips`}
+            />
+            <StatCard
+              label="Open Admissions"
+              value={analytics.totals.open_admissions}
+              subtext="Pending or accepted requests"
+            />
+            <StatCard
+              label="Low Blood Stock"
+              value={analytics.lowStockBlood?.length || 0}
+              subtext="Stock items with < 5 units"
+            />
+          </div>
+
+          {/* Charts Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+            {/* Hospital Bed Occupancy SVG Chart */}
+            <Card title="Hospital Bed Capacity & Occupancy">
+              {analytics.bedOccupancy && analytics.bedOccupancy.length > 0 ? (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {analytics.bedOccupancy.slice(0, 8).map((b, idx) => {
+                    const occPct = Math.min(100, Math.max(0, b.occupancy_pct || 0));
+                    return (
+                      <div key={idx} style={{ fontSize: '0.875rem' }}>
+                        <div className="flex-between" style={{ marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 600 }}>{b.hospital_name} ({b.type})</span>
+                          <span style={{ color: 'var(--color-text-secondary)' }}>
+                            {b.available} free / {b.total} total ({occPct}%)
+                          </span>
+                        </div>
+                        <div style={{ height: '8px', background: 'var(--color-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              width: `${occPct}%`,
+                              height: '100%',
+                              backgroundColor: occPct > 85 ? 'var(--color-danger)' : occPct > 60 ? 'var(--color-warning)' : 'var(--color-primary)',
+                              transition: 'width 0.4s ease',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyState title="No occupancy data available" />
+              )}
+            </Card>
+
+            {/* Waiting Times & Role Breakdown */}
+            <Card title="Emergency Waiting Times (Average)">
+              {analytics.avgWaitByHospital && analytics.avgWaitByHospital.length > 0 ? (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {analytics.avgWaitByHospital.map((item, idx) => (
+                    <div key={idx} className="flex-between" style={{ padding: '8px 12px', background: 'var(--color-surface)', borderRadius: 'var(--radius-sm)' }}>
+                      <span style={{ fontWeight: 500 }}>{item.hospital_name}</span>
+                      <Badge variant={item.avg_minutes > 45 ? 'danger' : item.avg_minutes > 25 ? 'warning' : 'success'}>
+                        {item.avg_minutes} mins avg
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No waiting time data available" />
+              )}
+            </Card>
+          </div>
+
+          {/* Breakdown cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+            <Card title="Admissions by Status">
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {analytics.admissionsByStatus?.map((s) => (
+                  <div key={s.status} className="flex-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <Badge variant={s.status === 'COMPLETED' ? 'success' : s.status === 'PENDING' ? 'warning' : 'neutral'}>
+                      {s.status}
+                    </Badge>
+                    <span style={{ fontWeight: 700 }}>{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Ambulance Requests by Status">
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {analytics.ambulanceRequestsByStatus?.map((s) => (
+                  <div key={s.status} className="flex-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <Badge variant={s.status === 'COMPLETED' ? 'success' : s.status === 'EN_ROUTE' ? 'primary' : 'neutral'}>
+                      {s.status}
+                    </Badge>
+                    <span style={{ fontWeight: 700 }}>{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card title="Users by Role">
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {analytics.usersByRole?.map((r) => (
+                  <div key={r.role} className="flex-between" style={{ padding: '6px 0', borderBottom: '1px solid var(--color-border)' }}>
+                    <span style={{ fontWeight: 500 }}>{r.role}</span>
+                    <Badge variant="neutral">{r.count} accounts</Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: USERS */}
+      {activeTab === 'users' && (
+        <Card>
+          <div className="flex-between" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '280px' }}>
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                style={{ flex: 1, padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+              />
+              <select
+                value={userRoleFilter}
+                onChange={(e) => setUserRoleFilter(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+              >
+                <option value="ALL">All Roles</option>
+                <option value="PATIENT">Patient</option>
+                <option value="HOSPITAL">Hospital Staff</option>
+                <option value="AMBULANCE">Ambulance Operator</option>
+                <option value="BLOODBANK">Blood Bank</option>
+                <option value="ADMIN">Admin</option>
+              </select>
+            </div>
+            <Button variant="primary" onClick={() => setShowStaffModal(true)}>+ Provision Staff</Button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th style={{ padding: '10px 12px' }}>Name / Email</th>
+                  <th style={{ padding: '10px 12px' }}>Role</th>
+                  <th style={{ padding: '10px 12px' }}>Linked Facility</th>
+                  <th style={{ padding: '10px 12px' }}>Status</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ padding: '24px', textAlign: 'center' }}>No users found</td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => {
+                    let linkedName = '—';
+                    if (u.role === 'HOSPITAL' && u.hospital_id) linkedName = hospitalMap.get(u.hospital_id) || `ID #${u.hospital_id}`;
+                    if (u.role === 'AMBULANCE' && u.ambulance_id) linkedName = ambulanceMap.get(u.ambulance_id) || `ID #${u.ambulance_id}`;
+                    if (u.role === 'BLOODBANK' && u.bloodbank_id) linkedName = bloodBankMap.get(u.bloodbank_id) || `ID #${u.bloodbank_id}`;
+
+                    const isSelf = u.user_id === currentUser?.user_id;
+
+                    return (
+                      <tr key={u.user_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <td style={{ padding: '10px 12px' }}>
+                          <div style={{ fontWeight: 600 }}>{u.name} {isSelf && <span style={{ color: 'var(--color-primary)' }}>(You)</span>}</div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{u.email}</div>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <Badge variant={u.role === 'ADMIN' ? 'primary' : u.role === 'PATIENT' ? 'neutral' : 'info'}>
+                            {u.role}
+                          </Badge>
+                        </td>
+                        <td style={{ padding: '10px 12px', color: 'var(--color-text-secondary)' }}>
+                          {linkedName}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <Badge variant={u.active ? 'success' : 'danger'}>
+                            {u.active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          {!isSelf && (
+                            <Button
+                              variant={u.active ? 'danger' : 'secondary'}
+                              size="sm"
+                              onClick={() => handleToggleUserStatus(u)}
+                            >
+                              {u.active ? 'Deactivate' : 'Reactivate'}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* TAB 3: HOSPITALS */}
+      {activeTab === 'hospitals' && (
+        <Card>
+          <div className="flex-between" style={{ marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Hospital Facilities Directory</h3>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditingHospital(null);
+                setHospitalForm({
+                  name: '',
+                  address: '',
+                  city: 'New Delhi',
+                  latitude: '28.6139',
+                  longitude: '77.2090',
+                  phone: '',
+                  email: '',
+                  description: '',
+                  specialties: 'General Medicine, Emergency',
+                });
+                setShowHospitalModal(true);
+              }}
+            >
+              + Add Hospital
+            </Button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th style={{ padding: '10px 12px' }}>Hospital</th>
+                  <th style={{ padding: '10px 12px' }}>Location</th>
+                  <th style={{ padding: '10px 12px' }}>Contact</th>
+                  <th style={{ padding: '10px 12px' }}>Specialties</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hospitals.map((h) => (
+                  <tr key={h.hospital_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div style={{ fontWeight: 600 }}>{h.name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                        {h.available_beds ?? 0} free beds • {h.doctor_count ?? 0} doctors
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: 'var(--color-text-secondary)' }}>
+                      {h.address}, {h.city}
+                    </td>
+                    <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                      <div>{h.phone || '—'}</div>
+                      <div style={{ color: 'var(--color-text-secondary)' }}>{h.email || '—'}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px', fontSize: '0.85rem' }}>
+                      {h.specialties || 'General'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setEditingHospital(h);
+                            setHospitalForm({
+                              name: h.name,
+                              address: h.address,
+                              city: h.city,
+                              latitude: String(h.latitude),
+                              longitude: String(h.longitude),
+                              phone: h.phone || '',
+                              email: h.email || '',
+                              description: h.description || '',
+                              specialties: h.specialties || '',
+                            });
+                            setShowHospitalModal(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDeleteHospital(h)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* TAB 4: AMBULANCES */}
+      {activeTab === 'ambulances' && (
+        <Card>
+          <div className="flex-between" style={{ marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Ambulance Fleet Directory</h3>
+            <Button variant="primary" onClick={() => setShowAmbulanceModal(true)}>+ Add Ambulance</Button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th style={{ padding: '10px 12px' }}>Vehicle Number</th>
+                  <th style={{ padding: '10px 12px' }}>Driver</th>
+                  <th style={{ padding: '10px 12px' }}>Status</th>
+                  <th style={{ padding: '10px 12px' }}>Coordinates</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ambulances.map((a) => (
+                  <tr key={a.ambulance_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>{a.vehicle_no}</td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <div>{a.driver_name || 'Unassigned'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>{a.driver_phone || '—'}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <Badge variant={a.status === 'AVAILABLE' ? 'success' : a.status === 'ON_TRIP' ? 'warning' : 'neutral'}>
+                        {a.status}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                      {a.latitude ? `${Number(a.latitude).toFixed(4)}, ${Number(a.longitude).toFixed(4)}` : 'No GPS'}
+                    </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                      <Button variant="danger" size="sm" onClick={() => handleDeleteAmbulance(a)}>
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* TAB 5: BLOOD BANKS */}
+      {activeTab === 'blood_banks' && (
+        <Card>
+          <div className="flex-between" style={{ marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.15rem' }}>Regional Blood Bank Network</h3>
+            <Button variant="primary" onClick={() => setShowBankModal(true)}>+ Add Blood Bank</Button>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th style={{ padding: '10px 12px' }}>Name</th>
+                  <th style={{ padding: '10px 12px' }}>Address</th>
+                  <th style={{ padding: '10px 12px' }}>Phone</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bloodBanks.map((b) => (
+                  <tr key={b.bloodbank_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600 }}>{b.name}</td>
+                    <td style={{ padding: '10px 12px', color: 'var(--color-text-secondary)' }}>
+                      {b.address}, {b.city}
+                    </td>
+                    <td style={{ padding: '10px 12px' }}>{b.phone || '—'}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                      <Button variant="danger" size="sm" onClick={() => handleDeleteBank(b)}>
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* TAB 6: AUDIT TRAIL */}
+      {activeTab === 'audit' && (
+        <Card>
+          <div className="flex-between" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.15rem' }}>System Audit Trail</h3>
+              <p style={{ margin: '4px 0 0', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+                Immutable event stream of security-relevant and resource status updates
+              </p>
+            </div>
+            <select
+              value={auditEntityFilter}
+              onChange={(e) => setAuditEntityFilter(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+            >
+              <option value="ALL">All Entities</option>
+              <option value="admissions">Admissions</option>
+              <option value="ambulance_requests">Ambulances</option>
+              <option value="reservations">Blood Reservations</option>
+              <option value="hospitals">Hospitals</option>
+              <option value="users">Users</option>
+            </select>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th style={{ padding: '8px 10px' }}>Timestamp</th>
+                  <th style={{ padding: '8px 10px' }}>Actor</th>
+                  <th style={{ padding: '8px 10px' }}>Action</th>
+                  <th style={{ padding: '8px 10px' }}>Target</th>
+                  <th style={{ padding: '8px 10px' }}>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAudit.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ padding: '24px', textAlign: 'center' }}>No audit records found</td>
+                  </tr>
+                ) : (
+                  filteredAudit.map((log) => (
+                    <tr key={log.log_id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', color: 'var(--color-text-secondary)' }}>
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <div style={{ fontWeight: 600 }}>{log.user_name || 'System / Guest'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>{log.user_email}</div>
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <Badge variant="neutral">{log.action}</Badge>
+                      </td>
+                      <td style={{ padding: '8px 10px', textTransform: 'capitalize' }}>
+                        {log.entity} #{log.entity_id}
+                      </td>
+                      <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '0.75rem', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {typeof log.details === 'object' ? JSON.stringify(log.details) : log.details || '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* MODAL: PROVISION STAFF USER */}
+      <Modal
+        isOpen={showStaffModal}
+        onClose={() => setShowStaffModal(false)}
+        title="Provision Staff Account"
+      >
+        <form onSubmit={handleCreateStaff} style={{ display: 'grid', gap: '14px' }}>
+          <FormField label="Full Name" required>
+            <input
+              type="text"
+              required
+              value={staffForm.name}
+              onChange={(e) => setStaffForm({ ...staffForm, name: e.target.value })}
+              placeholder="e.g., Dr. Ramesh Sharma"
+            />
+          </FormField>
+          <FormField label="Email Address" required>
+            <input
+              type="email"
+              required
+              value={staffForm.email}
+              onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })}
+              placeholder="staff@medilink.org"
+            />
+          </FormField>
+          <FormField label="Temporary Password" required helper="Must be at least 8 characters">
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={staffForm.password}
+              onChange={(e) => setStaffForm({ ...staffForm, password: e.target.value })}
+            />
+          </FormField>
+          <FormField label="Contact Phone">
+            <input
+              type="tel"
+              value={staffForm.phone}
+              onChange={(e) => setStaffForm({ ...staffForm, phone: e.target.value })}
+              placeholder="+91 98765 43210"
+            />
+          </FormField>
+          <FormField label="Assigned Role" required>
+            <select
+              value={staffForm.role}
+              onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })}
+            >
+              <option value="HOSPITAL">Hospital Staff</option>
+              <option value="AMBULANCE">Ambulance Operator</option>
+              <option value="BLOODBANK">Blood Bank Manager</option>
+              <option value="ADMIN">System Administrator</option>
+            </select>
+          </FormField>
+
+          {/* Conditional Entity Pickers */}
+          {staffForm.role === 'HOSPITAL' && (
+            <FormField label="Select Hospital" required>
+              <select
+                required
+                value={staffForm.hospital_id}
+                onChange={(e) => setStaffForm({ ...staffForm, hospital_id: e.target.value })}
+              >
+                <option value="">— Select Hospital —</option>
+                {hospitals.map((h) => (
+                  <option key={h.hospital_id} value={h.hospital_id}>{h.name}</option>
+                ))}
+              </select>
+            </FormField>
+          )}
+
+          {staffForm.role === 'AMBULANCE' && (
+            <FormField label="Select Ambulance" required>
+              <select
+                required
+                value={staffForm.ambulance_id}
+                onChange={(e) => setStaffForm({ ...staffForm, ambulance_id: e.target.value })}
+              >
+                <option value="">— Select Ambulance Vehicle —</option>
+                {ambulances.map((a) => (
+                  <option key={a.ambulance_id} value={a.ambulance_id}>{a.vehicle_no} ({a.driver_name || 'No driver'})</option>
+                ))}
+              </select>
+            </FormField>
+          )}
+
+          {staffForm.role === 'BLOODBANK' && (
+            <FormField label="Select Blood Bank" required>
+              <select
+                required
+                value={staffForm.bloodbank_id}
+                onChange={(e) => setStaffForm({ ...staffForm, bloodbank_id: e.target.value })}
+              >
+                <option value="">— Select Blood Bank Facility —</option>
+                {bloodBanks.map((b) => (
+                  <option key={b.bloodbank_id} value={b.bloodbank_id}>{b.name}</option>
+                ))}
+              </select>
+            </FormField>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+            <Button variant="secondary" type="button" onClick={() => setShowStaffModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" loading={saving}>Create Account</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: ADD / EDIT HOSPITAL */}
+      <Modal
+        isOpen={showHospitalModal}
+        onClose={() => setShowHospitalModal(false)}
+        title={editingHospital ? 'Edit Hospital Facility' : 'Add New Hospital Facility'}
+      >
+        <form onSubmit={handleSaveHospital} style={{ display: 'grid', gap: '14px' }}>
+          <FormField label="Hospital Name" required>
+            <input
+              type="text"
+              required
+              value={hospitalForm.name}
+              onChange={(e) => setHospitalForm({ ...hospitalForm, name: e.target.value })}
+            />
+          </FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+            <FormField label="Street Address" required>
+              <input
+                type="text"
+                required
+                value={hospitalForm.address}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, address: e.target.value })}
+              />
+            </FormField>
+            <FormField label="City" required>
+              <input
+                type="text"
+                required
+                value={hospitalForm.city}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, city: e.target.value })}
+              />
+            </FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <FormField label="Latitude" required>
+              <input
+                type="number"
+                step="any"
+                required
+                value={hospitalForm.latitude}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, latitude: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Longitude" required>
+              <input
+                type="number"
+                step="any"
+                required
+                value={hospitalForm.longitude}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, longitude: e.target.value })}
+              />
+            </FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <FormField label="Phone">
+              <input
+                type="tel"
+                value={hospitalForm.phone}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, phone: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Email">
+              <input
+                type="email"
+                value={hospitalForm.email}
+                onChange={(e) => setHospitalForm({ ...hospitalForm, email: e.target.value })}
+              />
+            </FormField>
+          </div>
+          <FormField label="Specialties (comma-separated)">
+            <input
+              type="text"
+              value={hospitalForm.specialties}
+              onChange={(e) => setHospitalForm({ ...hospitalForm, specialties: e.target.value })}
+              placeholder="Cardiology, Neurology, Emergency"
+            />
+          </FormField>
+          <FormField label="Brief Description">
+            <textarea
+              rows="3"
+              value={hospitalForm.description}
+              onChange={(e) => setHospitalForm({ ...hospitalForm, description: e.target.value })}
+            />
+          </FormField>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+            <Button variant="secondary" type="button" onClick={() => setShowHospitalModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" loading={saving}>Save Hospital</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: ADD AMBULANCE */}
+      <Modal
+        isOpen={showAmbulanceModal}
+        onClose={() => setShowAmbulanceModal(false)}
+        title="Add Ambulance Vehicle"
+      >
+        <form onSubmit={handleSaveAmbulance} style={{ display: 'grid', gap: '14px' }}>
+          <FormField label="Vehicle Registration Number" required>
+            <input
+              type="text"
+              required
+              value={ambulanceForm.vehicle_no}
+              onChange={(e) => setAmbulanceForm({ ...ambulanceForm, vehicle_no: e.target.value.toUpperCase() })}
+              placeholder="DL 01 AB 1234"
+            />
+          </FormField>
+          <FormField label="Driver Full Name">
+            <input
+              type="text"
+              value={ambulanceForm.driver_name}
+              onChange={(e) => setAmbulanceForm({ ...ambulanceForm, driver_name: e.target.value })}
+              placeholder="e.g. Surender Kumar"
+            />
+          </FormField>
+          <FormField label="Driver Phone">
+            <input
+              type="tel"
+              value={ambulanceForm.driver_phone}
+              onChange={(e) => setAmbulanceForm({ ...ambulanceForm, driver_phone: e.target.value })}
+              placeholder="+91 98765 43210"
+            />
+          </FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <FormField label="Base Latitude">
+              <input
+                type="number"
+                step="any"
+                value={ambulanceForm.latitude}
+                onChange={(e) => setAmbulanceForm({ ...ambulanceForm, latitude: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Base Longitude">
+              <input
+                type="number"
+                step="any"
+                value={ambulanceForm.longitude}
+                onChange={(e) => setAmbulanceForm({ ...ambulanceForm, longitude: e.target.value })}
+              />
+            </FormField>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+            <Button variant="secondary" type="button" onClick={() => setShowAmbulanceModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" loading={saving}>Save Vehicle</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* MODAL: ADD BLOOD BANK */}
+      <Modal
+        isOpen={showBankModal}
+        onClose={() => setShowBankModal(false)}
+        title="Add Blood Bank Facility"
+      >
+        <form onSubmit={handleSaveBank} style={{ display: 'grid', gap: '14px' }}>
+          <FormField label="Blood Bank Name" required>
+            <input
+              type="text"
+              required
+              value={bankForm.name}
+              onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })}
+              placeholder="e.g. Red Cross Regional Center"
+            />
+          </FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+            <FormField label="Street Address" required>
+              <input
+                type="text"
+                required
+                value={bankForm.address}
+                onChange={(e) => setBankForm({ ...bankForm, address: e.target.value })}
+              />
+            </FormField>
+            <FormField label="City" required>
+              <input
+                type="text"
+                required
+                value={bankForm.city}
+                onChange={(e) => setBankForm({ ...bankForm, city: e.target.value })}
+              />
+            </FormField>
+          </div>
+          <FormField label="Helpline Phone">
+            <input
+              type="tel"
+              value={bankForm.phone}
+              onChange={(e) => setBankForm({ ...bankForm, phone: e.target.value })}
+              placeholder="+91 11 2335 9306"
+            />
+          </FormField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <FormField label="Latitude">
+              <input
+                type="number"
+                step="any"
+                value={bankForm.latitude}
+                onChange={(e) => setBankForm({ ...bankForm, latitude: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Longitude">
+              <input
+                type="number"
+                step="any"
+                value={bankForm.longitude}
+                onChange={(e) => setBankForm({ ...bankForm, longitude: e.target.value })}
+              />
+            </FormField>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+            <Button variant="secondary" type="button" onClick={() => setShowBankModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" loading={saving}>Save Blood Bank</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
-}
-
-function AdminUnitRow({ unit, onSave }) {
-  const [quantity, setQuantity] = useState(unit.quantity);
-  const [available, setAvailable] = useState(unit.available);
-  return <tr>
-    <td>{unit.bloodbank_name}</td><td>{unit.blood_group}</td>
-    <td><input aria-label={`${unit.blood_group} total units`} type="number" min="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></td>
-    <td><input aria-label={`${unit.blood_group} available units`} type="number" min="0" value={available} onChange={(e) => setAvailable(e.target.value)} /></td>
-    <td><button className="btn-secondary" onClick={() => onSave({ quantity: Number(quantity), available: Number(available) })}>Save</button></td>
-  </tr>;
 }
