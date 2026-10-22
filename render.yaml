@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: medilink
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: medilink-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DB_PATH
+        value: /var/data/medilink.db
+      - key: JWT_SECRET
+        generateValue: true

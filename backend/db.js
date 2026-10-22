@@ -12,6 +12,11 @@ function getDb(customPath) {
     dbPath = path.join(__dirname, 'medilink.db');
   }
 
+  const fs = require('fs');
+  if (dbPath !== ':memory:') {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  }
+
   const db = new Database(dbPath);
   if (dbPath !== ':memory:') {
     db.pragma('journal_mode = WAL');
