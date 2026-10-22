@@ -1,111 +1,388 @@
-# MediLink
+# MediLink — Centralized Healthcare Coordination Platform
 
-A working full-stack prototype of the MediLink centralized healthcare coordination
-platform, implemented from the project's SRS, UML, DFD, and ER design documents.
+[![CI Pipeline](https://github.com/Khushii1201/MediLink/actions/workflows/ci.yml/badge.svg)](https://github.com/Khushii1201/MediLink/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org)
+[![React 19](https://img.shields.io/badge/React-19.3.1-blue.svg)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-8.3.5-646CFF.svg)](https://vitejs.dev)
+[![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-green.svg)](https://leafletjs.com)
 
-MediLink connects patients, hospitals, ambulance operators, blood banks, and
-administrators so emergency resources can be found, requested, and monitored
-from one application.
+> **MediLink** is a full-stack emergency healthcare coordination platform that bridges patients, hospital facilities, ambulance operators, blood banks, and health authorities into a single, real-time dispatch and resource visibility network.
 
-## Tech stack (academic-prototype substitutions noted)
+---
 
-| Layer | SRS target | Used in this build | Why |
+## 1. Problem Statement & Architecture Solution
+
+In metropolitan and semi-urban emergency healthcare, fragmented operations cause critical delays:
+1. **Blind Hospital Selection:** Patients visit emergency rooms without knowing bed availability, ICU capacity, or current wait times.
+2. **Delayed Emergency Triage:** Emergency wards lack advance notice of incoming critical admissions.
+3. **Disconnected Dispatch:** Ambulance operations are fragmented across private and public fleets without unified dispatch algorithms.
+4. **Blood Stock Invisibility:** Family members scramble between blood centers during acute shortages.
+
+**MediLink** solves these systemic bottlenecks with a zero-cost, privacy-conscious, rule-based coordination system. It features real-time bed inventory tracking, transparent algorithmic hospital recommendations, nearest-vehicle ambulance dispatch, blood bank reservations, and immutable administrative audit trails.
+
+---
+
+## 2. Key Features Matrix
+
+| Feature | Patient | Hospital Staff | Ambulance Driver | Blood Bank | Administrator |
+|---|:---:|:---:|:---:|:---:|:---:|
+| **Emergency Facility Discovery & Leaflet Map** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Multi-Criteria Hospital Recommendation Engine** | ✅ | — | — | — | ✅ |
+| **Emergency Admission Request with Triage** | ✅ | — | — | — | — |
+| **Admissions Queue (Critical Priority First)** | — | ✅ | — | — | ✅ |
+| **Atomic Bed & ICU Stepper Inventory** | — | ✅ | — | — | ✅ |
+| **Nearest Available Ambulance Dispatch** | ✅ | — | — | — | ✅ |
+| **Live Ambulance Tracking & ETA Broadcast** | ✅ | — | ✅ | — | ✅ |
+| **Blood Unit Search & Distance Proximity** | ✅ | — | — | — | ✅ |
+| **Blood Reservation Lifecycle (Atomic Hold/Deduct)** | ✅ | — | — | ✅ | ✅ |
+| **Staff Provisioning & Role Delegation** | — | — | — | — | ✅ |
+| **Full Immutable Audit Trail Stream** | — | — | — | — | ✅ |
+
+---
+
+## 3. System Architecture & Workflows
+
+### 3.1 High-Level Architecture
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["Client Layer (React 19 + Vite SPA)"]
+        UI_Patient["Patient View"]
+        UI_Hospital["Hospital Staff Dashboard"]
+        UI_Ambulance["Ambulance Operator Dashboard"]
+        UI_BloodBank["Blood Bank Dashboard"]
+        UI_Admin["System Admin Console"]
+    end
+
+    subgraph APILayer ["Backend API Gateway (Express 4 / Node 20+)"]
+        MW_Auth["JWT Guard & Role RBAC"]
+        MW_RateLimit["Express Rate Limiters"]
+        MW_Audit["Audit Logging Service"]
+
+        subgraph Modules ["Business Logic Services"]
+            Svc_Geo["Haversine Geolocation Engine"]
+            Svc_Wait["Wait-Time Dynamic Estimator"]
+            Svc_Rec["Transparent Rule-Based Scorer"]
+            Svc_Dispatch["Nearest Fleet Dispatcher"]
+        end
+    end
+
+    subgraph DataLayer ["Persistence Layer (SQLite / better-sqlite3)"]
+        DB_WAL[("WAL-Mode SQLite Database\n(Atomic Transactions & FK Checks)")]
+    end
+
+    ClientLayer <-->|REST over HTTPS + Bearer Tokens| APILayer
+    MW_Auth --> Modules
+    MW_RateLimit --> Modules
+    Modules --> MW_Audit
+    Modules <--> DB_WAL
+    MW_Audit --> DB_WAL
+```
+
+### 3.2 Emergency Admission & Bed Deduction Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Patient
+    participant API as Express API
+    participant DB as SQLite DB
+    actor Hospital as Hospital Staff
+
+    Patient->>API: POST /api/admissions (Hospital ID, Severity: CRITICAL)
+    API->>DB: INSERT into admissions (Status: PENDING)
+    DB-->>API: Row Created
+    API-->>Patient: 201 Created (Admission Ticket)
+
+    Hospital->>API: GET /api/admissions (Sorted: CRITICAL first)
+    API-->>Hospital: Admissions Queue
+
+    Hospital->>API: PUT /api/admissions/:id/status (ACCEPTED)
+    activate API
+    API->>DB: Transaction: Check available_beds > 0
+    alt Beds Available
+        API->>DB: Decrement available_beds by 1
+        API->>DB: Update admission status = ACCEPTED
+        API->>DB: Write audit_log (ADMISSION_ACCEPTED)
+        API-->>Hospital: 200 OK (Bed Secured)
+    else No Beds Available
+        API-->>Hospital: 409 Conflict (No beds available)
+    end
+    deactivate API
+
+    Hospital->>API: PUT /api/admissions/:id/status (COMPLETED)
+    API->>DB: Increment available_beds by 1 & Mark COMPLETED
+    API-->>Hospital: 200 OK (Patient Discharged / Checked In)
+```
+
+### 3.3 Database Schema (Entity-Relationship Diagram)
+
+```mermaid
+erDiagram
+    USERS ||--o{ ADMISSIONS : requests
+    USERS ||--o{ AMBULANCE_REQUESTS : requests
+    USERS ||--o{ RESERVATIONS : books
+    USERS ||--o{ AUDIT_LOGS : triggers
+
+    HOSPITALS ||--o{ RESOURCES : maintains
+    HOSPITALS ||--o{ DOCTORS : employs
+    HOSPITALS ||--o{ WAITING_TIMES : reports
+    HOSPITALS ||--o{ ADMISSIONS : receives
+    HOSPITALS ||--o{ USERS : assigns_staff
+
+    AMBULANCES ||--o{ AMBULANCE_REQUESTS : serves
+    AMBULANCES ||--o{ AMBULANCE_LOCATIONS : tracks
+    AMBULANCES ||--o{ USERS : assigns_operator
+
+    BLOOD_BANKS ||--o{ BLOOD_UNITS : stocks
+    BLOOD_BANKS ||--o{ USERS : assigns_manager
+    BLOOD_UNITS ||--o{ RESERVATIONS : allocates
+
+    USERS {
+        int user_id PK
+        string name
+        string email UK
+        string password_hash
+        string phone
+        string role
+        int hospital_id FK
+        int ambulance_id FK
+        int bloodbank_id FK
+        int active
+        string created_at
+    }
+
+    HOSPITALS {
+        int hospital_id PK
+        string name
+        string address
+        string city
+        real latitude
+        real longitude
+        string phone
+        string email
+        string description
+        string specialties
+        string created_at
+    }
+
+    RESOURCES {
+        int resource_id PK
+        int hospital_id FK
+        string type
+        int total
+        int available
+        string updated_at
+    }
+
+    AMBULANCES {
+        int ambulance_id PK
+        string vehicle_no UK
+        string status
+        real latitude
+        real longitude
+        string driver_name
+        string driver_phone
+        string updated_at
+    }
+
+    BLOOD_BANKS {
+        int bloodbank_id PK
+        string name
+        string address
+        string city
+        real latitude
+        real longitude
+        string phone
+        string created_at
+    }
+
+    BLOOD_UNITS {
+        int unit_id PK
+        int bloodbank_id FK
+        string blood_group
+        int quantity
+        int available
+        string updated_at
+    }
+
+    AUDIT_LOGS {
+        int log_id PK
+        int user_id FK
+        string action
+        string entity
+        int entity_id
+        text details
+        string created_at
+    }
+```
+
+---
+
+## 4. Algorithmic Models & Mathematical Formulas
+
+### 4.1 Multi-Factor Hospital Recommendation Formula
+
+To prevent arbitrary ranking or opaque black-box AI behavior, MediLink uses a fully transparent, rule-based scoring engine normalized on a scale of `0.0` to `1.0`:
+
+$$\text{Final Score} = (0.35 \times S_{\text{dist}}) + (0.30 \times S_{\text{beds}}) + (0.20 \times S_{\text{wait}}) + (0.15 \times S_{\text{spec}})$$
+
+Where:
+- **Distance Score ($S_{\text{dist}}$):** Calculated using Haversine distance $d$ in kilometers:
+  $$S_{\text{dist}} = \max\left(0, 1 - \frac{d}{50}\right)$$
+- **Bed Availability Score ($S_{\text{beds}}$):** Ratio of available beds to total hospital capacity:
+  $$S_{\text{beds}} = \frac{\text{available\_beds}}{\max(1, \text{total\_beds})}$$
+- **Waiting Time Score ($S_{\text{wait}}$):** Inverse penalty based on dynamic estimated wait minutes:
+  $$S_{\text{wait}} = \max\left(0, 1 - \frac{\text{estimated\_wait}}{120}\right)$$
+- **Specialty Score ($S_{\text{spec}}$):** $1.0$ if the facility matches the queried medical department, else $0.0$.
+- *Dynamic Specialty Redistribution:* If no specialty is requested by the patient, the $0.15$ specialty weight is proportionally redistributed to distance ($0.40$), availability ($0.35$), and waiting time ($0.25$).
+
+> **Important Medical Disclaimer:** Recommendation scores and waiting times are algorithmic estimates intended strictly for informational routing and convenience. They do not constitute clinical triage or diagnosis.
+
+### 4.2 Dynamic Emergency Waiting-Time Formula
+
+Emergency department wait times reflect both static queue times and real-time surges in occupancy and critical admissions:
+
+$$\text{Estimated Wait} = \text{Reported Base Wait} \times (1 + \text{Occupancy Factor}) + (5 \times \text{Pending Admissions})$$
+
+Where:
+$$\text{Occupancy Factor} = \frac{\text{Total Beds} - \text{Available Beds}}{\max(1, \text{Total Beds})}$$
+
+*Walkthrough Example:*
+- Reported baseline wait: 20 minutes
+- Hospital beds: 100 total, 20 available $\implies$ Occupancy Factor = $\frac{80}{100} = 0.8$
+- Pending triage requests in queue: 3
+- $\text{Estimated Wait} = 20 \times (1 + 0.8) + (5 \times 3) = (20 \times 1.8) + 15 = 36 + 15 = \mathbf{51\text{ minutes}}$.
+
+---
+
+## 5. Technology Stack & Rationale
+
+| Layer | Technology | Version | Engineering Rationale |
 |---|---|---|---|
-| Frontend | React.js, HTML5, CSS3, JS | React 19 + Vite | Same framework; Vite gives fast local dev with no extra setup |
-| Backend | Java Spring Boot + REST | Node.js + Express + REST | Same REST API contract; Node keeps the whole stack runnable with just `npm install` in this environment, no JDK/Maven required |
-| Database | MySQL | SQLite (file-based, `better-sqlite3`) | Same relational schema/relationships as the ER diagram; SQLite needs no server to install — swap the `db.js` driver for `mysql2` to point at MySQL with the same SQL |
-| Maps/GPS | Google Maps API | Lat/lng fields + Haversine distance calc | Demonstrates location-aware search/recommendation logic without requiring an API key |
-| AI recommendation | Python ML / Ollama + Llama 3 | Rule-based weighted scorer (distance, bed availability, waiting time) in `routes/recommendations.js` | Reproduces the documented recommendation *behavior* (SRS §5.6) without external ML infra; swap in a real model behind the same endpoint later |
+| **Frontend** | React + Vite | React 19.3 / Vite 8.3 | Ultra-fast HMR, concurrent React rendering, sub-second production builds with zero bundle bloat. |
+| **Client Routing** | React Router | 7.18 | Modern declarative routing with protected role gates and code-split suspense boundaries. |
+| **Mapping Engine** | Leaflet + React-Leaflet | Leaflet 1.9.4 | 100% free, privacy-friendly OpenStreetMap integration without requiring third-party billing accounts or API keys. |
+| **Backend Runtime** | Node.js + Express | Node 20+ / Express 4.19 | Non-blocking asynchronous I/O, lean RESTful route architecture, lightweight container footprint. |
+| **Database** | SQLite (`better-sqlite3`) | better-sqlite3 12.11 | Embedded C-binding engine with zero-latency in-process queries, WAL journaling, and atomic transaction guarantees. |
+| **Security** | bcryptjs + jsonwebtoken | bcryptjs 3.0 / jwt 9.0 | Cryptographic password hashing (salt rounds 10), stateless JWT tokens, strict HTTP rate-limiting, and Helmet security headers. |
 
-Everything else — the data model, roles, workflows, and REST endpoints — follows
-the SRS, Use Case diagram, Class diagram, and ER diagram directly.
+---
 
-## Project structure
+## 6. Local Quickstart
 
-```
-medilink/
-  backend/     Express API + SQLite database + seed data
-  frontend/    React (Vite) client, one dashboard per role
-```
+### Prerequisites
+- **Node.js**: `v20.0.0` or higher (`node -v`)
+- **npm**: `v10.0.0` or higher (`npm -v`)
 
-## Prerequisites
+### Installation & Initialization
 
-- Node.js 18+ and npm
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Khushii1201/MediLink.git
+   cd MediLink
+   ```
 
-## Setup
+2. **Install all dependencies:**
+   ```bash
+   npm run setup
+   ```
+   *(Or individually: `npm --prefix backend install` and `npm --prefix frontend install`)*
 
-### 1. Backend
+3. **Seed the database with rich Delhi NCR demo data:**
+   ```bash
+   npm run seed
+   ```
 
-```bash
-cd backend
-npm install
-npm run seed      # creates medilink.db and demo data (run once)
-npm start         # runs on http://localhost:5000
-```
+4. **Start concurrent development server:**
+   ```bash
+   npm run dev
+   ```
+   - Frontend: [http://localhost:5173](http://localhost:5173)
+   - Backend API: [http://localhost:5000](http://localhost:5000)
+   - API Health Check: [http://localhost:5000/api/health](http://localhost:5000/api/health)
 
-### 2. Frontend (in a second terminal)
+### Demo Accounts Table
 
-```bash
-cd frontend
-npm install
-npm run dev       # runs on http://localhost:5173
-```
+All pre-seeded demo accounts share the password **`password123`**:
 
-Open **http://localhost:5173**. The Vite dev server proxies `/api/*` requests
-to the backend on port 5000, so no extra configuration is needed.
+| Role | Email Address | Linked Facility | Purpose / Capabilities |
+|---|---|---|---|
+| **Administrator** | `admin@medilink.com` | Global Network | Full platform oversight, staff provisioning, audit stream |
+| **Patient** | `patient@medilink.com` | Delhi NCR Resident | Hospital discovery, admission requests, ambulance dispatch |
+| **Hospital Staff** | `hospital@medilink.com` | AIIMS New Delhi | Real-time bed stepper, critical admission triage, doctors |
+| **Ambulance Driver** | `ambulance@medilink.com` | Vehicle DL-01-AM-1001 | Vehicle status toggle, GPS tracking broadcast, trip steps |
+| **Blood Bank Staff** | `bloodbank@medilink.com` | Red Cross Blood Bank | 8-group stock updates, reservation approvals & triage |
+| **Second Patient** | `patient2@medilink.com` | Connaught Place | Concurrent booking, ambulance requests, blood reservations |
 
-### Demo accounts
+---
 
-All demo accounts use the password `password123`:
+## 7. Testing & Quality Assurance
 
-| Role | Email |
-|---|---|
-| Administrator | admin@medilink.com |
-| Patient | patient@medilink.com |
-| Hospital staff | hospital@medilink.com |
-| Ambulance operator | ambulance@medilink.com |
-| Blood bank staff | bloodbank@medilink.com |
-
-The login page has one-click buttons to fill these in.
-
-## Features implemented (mapped to SRS §5)
-
-- **5.1 Authentication & Authorization** — register/login, JWT sessions, role-based route guards on both API and UI.
-- **5.2 Hospital Resource Management** — hospital staff update bed/ICU/ventilator counts, add doctors, toggle doctor availability, set waiting times.
-- **5.3 Emergency Admission** — patients submit admission requests with a reason; hospital staff accept/reject/complete them (accepting decrements available beds).
-- **5.4 Ambulance Service** — patients request an ambulance (auto-assigned to the nearest available vehicle); operators advance trip status and push GPS updates.
-- **5.5 Blood Bank Management** — public blood-group search, patient reservations, blood bank staff approve/reject/fulfill requests (which decrements inventory).
-- **5.6 AI Hospital Recommendation** — ranks hospitals by a transparent, documented formula combining distance, bed-availability ratio, and average waiting time; every request is logged for audit/history.
-- **5.7 Waiting-Time Prediction** — hospital-maintained per-department estimates, surfaced in search and recommendations.
-- **5.8 Administration & Analytics** — user management, totals, status breakdowns, bed occupancy, and average wait by hospital.
-
-Security notes per SRS §7: passwords are bcrypt-hashed (never stored in plain
-text), all provider/admin actions require their role's JWT, and AI output is
-labeled as an estimate, not a clinical decision.
-
-## Resetting demo data
+MediLink includes automated end-to-end backend test suites executed against an isolated in-memory SQLite database (`:memory:`) to guarantee zero regression risk:
 
 ```bash
-cd backend
-rm -f medilink.db medilink.db-shm medilink.db-wal
-npm run seed
+# Run backend test suite (10 test cases covering authentication, admissions, ambulances, blood, and recommendations)
+npm test
+
+# Run frontend oxlint linter
+npm run lint
+
+# Build frontend production bundle
+npm run build
 ```
 
-## Building the frontend for production
+---
+
+## 8. Production Deployment
+
+### 8.1 Docker Deployment (Single Container)
+
+MediLink packages frontend and backend into a single multi-stage container:
 
 ```bash
-cd frontend
-npm run build      # outputs static files to frontend/dist
+# Build Docker image
+docker build -t medilink:latest .
+
+# Run container with persistent SQLite volume
+docker run -d \
+  --name medilink-app \
+  -p 5000:5000 \
+  -v medilink_data:/data \
+  -e JWT_SECRET="your-high-entropy-production-secret-min-32-chars" \
+  -e NODE_ENV="production" \
+  medilink:latest
 ```
 
-Serve `frontend/dist` with any static host, and point it at a deployed backend
-by setting the API base URL (currently `/api`, proxied in dev — in production,
-either serve both from the same origin behind a reverse proxy, or change the
-`BASE` constant in `frontend/src/api.js`).
+### 8.2 Render Blueprint (`render.yaml`)
 
-## Limitations (per SRS §9)
+Deploy directly to [Render](https://render.com) using Infrastructure-as-Code:
+1. Connect this GitHub repository in Render.
+2. Select **Blueprint** deployment.
+3. Render automatically provisions a Node web service, mounts a 1 GB persistent disk at `/var/data`, seeds the schema, and configures health checking on `/api/health`.
 
-This is an academic prototype: resource data is self-reported by seed/demo
-data rather than live hospital systems, location features use manual
-lat/lng rather than a live Maps SDK, and the AI recommendation is a
-transparent rule-based formula rather than a trained model.
+### Environment Variables Reference
+
+| Variable | Description | Default | Required in Production |
+|---|---|---|:---:|
+| `PORT` | HTTP server listening port | `5000` | No |
+| `NODE_ENV` | Runtime mode (`development`, `test`, `production`) | `development` | Yes |
+| `JWT_SECRET` | Secret key for signing authentication tokens | Dev fallback secret | **Yes (min 32 chars)** |
+| `DB_PATH` | Path to persistent SQLite database file | `backend/medilink.db` | Optional |
+| `CORS_ORIGIN` | Comma-separated allowed CORS origins | `*` | Optional |
+
+---
+
+## 9. Security & Concurrency Architecture
+
+- **Defense in Depth:** Express rate-limiting defends public and login endpoints against brute force attacks. Helmet sets secure headers with open CSP for Leaflet tiles.
+- **Role-Based Access Control (RBAC):** Every non-public API endpoint is guarded by `authRequired` and strict `requireRole()` middleware. Staff users are cryptographically bound to their assigned facility ID in the database.
+- **ACID Database Transactions:** Critical state transitions (bed decrementing, blood unit deductions, and ambulance assignments) execute within SQLite transactions (`db.transaction()`), preventing race conditions and double-allocation.
+- **Immutable Audit Logging:** All state alterations (acceptances, rejections, staff additions, and deactivations) write immutable records to `audit_logs` capturing timestamp, user ID, target entity, and parameters.
+
+---
+
+## 10. License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
