@@ -1,0 +1,5 @@
+node_modules/
+medilink.db
+medilink.db-shm
+medilink.db-wal
+.env
