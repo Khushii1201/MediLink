@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../hooks/useAuth';
@@ -33,6 +33,17 @@ export default function Login() {
   const [error, setError] = useState('');
 
   const showDemo = import.meta.env.VITE_SHOW_DEMO !== 'false';
+
+  useEffect(() => {
+    const roleParam = (searchParams.get('role') || '').toUpperCase();
+    if (roleParam) {
+      const match = DEMO_ACCOUNTS.find((a) => a.role === roleParam);
+      if (match) {
+        setEmail(match.email);
+        setPassword('password123');
+      }
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e) {
     e.preventDefault();

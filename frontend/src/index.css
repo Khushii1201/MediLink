@@ -1605,6 +1605,416 @@ tr:hover td {
 }
 
 /* ==========================================================================
+   19b. Enhanced Auth & Registration
+   ========================================================================== */
+.auth-card.auth-card-wide {
+  max-width: 640px;
+  width: 100%;
+}
+
+.auth-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.auth-role-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: var(--bg-muted);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+}
+
+.auth-role-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-role-tab:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.auth-role-tab.active {
+  background: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-border);
+}
+
+/* Password Strength & Match Meter */
+.password-meter-wrap {
+  margin-top: 6px;
+}
+
+.password-meter-bars {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  margin-bottom: 6px;
+}
+
+.password-meter-segment {
+  flex: 1;
+  background: var(--border);
+  border-radius: 2px;
+  transition: background-color 0.25s ease;
+}
+
+.password-meter-segment.active-weak {
+  background-color: var(--danger);
+}
+
+.password-meter-segment.active-fair {
+  background-color: var(--warning);
+}
+
+.password-meter-segment.active-strong {
+  background-color: var(--success);
+}
+
+.password-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.password-reqs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.password-req-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.password-req-item.met {
+  color: var(--success-text);
+  font-weight: 600;
+}
+
+.match-feedback {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.match-feedback.matched {
+  color: var(--success-text);
+}
+
+.match-feedback.unmatched {
+  color: var(--danger-text);
+}
+
+/* Form Two-Column Group */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 540px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+  .auth-role-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Consent and checkboxes */
+.auth-consent-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.785rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.auth-consent-wrap input[type="checkbox"] {
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+/* Trust Badges Strip */
+.auth-trust-strip {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  margin-top: 18px;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border);
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+
+.auth-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+/* Staff & Provider Portal View */
+.staff-provision-banner {
+  background: var(--primary-subtle);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.staff-provision-banner .icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.staff-provision-banner h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.staff-provision-banner p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.staff-roles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 580px) {
+  .staff-roles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staff-role-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.staff-role-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.staff-role-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.staff-role-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.staff-role-desc {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.staff-role-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.staff-role-features li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.staff-role-features li::before {
+  content: "•";
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.staff-role-link-btn {
+  margin-top: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-subtle);
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.staff-role-link-btn:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+.role-guide-btn-wrap {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.role-guide-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.role-guide-toggle-btn:hover {
+  text-decoration: underline;
+}
+
+/* Role Modal Table */
+.role-matrix-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0 18px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.role-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.785rem;
+  text-align: left;
+}
+
+.role-matrix-table th,
+.role-matrix-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.role-matrix-table th {
+  background: var(--bg-muted);
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.role-matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.role-matrix-table tr:hover td {
+  background: var(--bg-muted);
+}
+
+.role-check {
+  color: var(--success);
+  font-weight: bold;
+}
+
+.role-dash {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.role-summary-card {
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 12px;
+  border-left: 3px solid var(--primary);
+}
+
+.role-summary-card h4 {
+  margin: 0 0 4px 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.role-summary-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+
+/* ==========================================================================
    20. Footer Component
    ========================================================================== */
 .app-footer {
