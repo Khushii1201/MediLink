@@ -22,7 +22,7 @@ function authRequired(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     // Verify user exists and is active in DB
-    const user = db.prepare('SELECT user_id, name, email, role, hospital_id, ambulance_id, bloodbank_id, active FROM users WHERE user_id = ?').get(decoded.user_id);
+    const user = db.prepare('SELECT user_id, name, email, role, staff_role, hospital_id, ambulance_id, bloodbank_id, active FROM users WHERE user_id = ?').get(decoded.user_id);
     if (!user) {
       return res.status(401).json({ error: 'User account not found' });
     }

@@ -285,7 +285,7 @@ export default function HospitalDetail() {
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <h4 style={{ marginBottom: '0.75rem' }}>Location & Access</h4>
             <MapView
-              center={[hospital.latitude || 28.6139, hospital.longitude || 77.2090]}
+              center={[hospital.latitude || 26.9124, hospital.longitude || 75.7873]}
               zoom={13}
               markers={mapMarker}
               height="280px"

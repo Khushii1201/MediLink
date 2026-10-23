@@ -78,7 +78,7 @@ export default function Home() {
 
           <p className="hero-subtitle">
             MediLink connects patients, healthcare facilities, ambulance operators, and blood banks
-            to locate and coordinate emergency medical resources in real time across Delhi NCR.
+            to locate and coordinate emergency medical resources in real time across Jaipur and surrounding regions.
           </p>
 
           <div className="hero-cta-group">

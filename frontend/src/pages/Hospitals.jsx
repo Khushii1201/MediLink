@@ -98,7 +98,7 @@ export default function Hospitals() {
         <div>
           <h2>Hospital Directory & Resource Tracker</h2>
           <p className="muted">
-            Search verified network hospitals in Delhi NCR. Compare available beds, ICU facilities, and waiting times.
+            Search verified network hospitals in Jaipur and surrounding regions. Compare available beds, ICU facilities, and waiting times.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={requestLocation} loading={geoLoading}>

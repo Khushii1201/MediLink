@@ -42,8 +42,8 @@ export default function HospitalDashboard() {
   const [profileForm, setProfileForm] = useState({
     name: '',
     address: '',
-    latitude: 28.6139,
-    longitude: 77.2090,
+    latitude: 26.9124,
+    longitude: 75.7873,
     specialties: '',
     insurance_info: '',
     phone: '',
@@ -67,8 +67,8 @@ export default function HospitalDashboard() {
         setProfileForm({
           name: hospData.name || '',
           address: hospData.address || '',
-          latitude: hospData.latitude || 28.6139,
-          longitude: hospData.longitude || 77.2090,
+          latitude: hospData.latitude || 26.9124,
+          longitude: hospData.longitude || 75.7873,
           specialties: hospData.specialties || '',
           insurance_info: hospData.insurance_info || '',
           phone: hospData.phone || '',
@@ -87,11 +87,17 @@ export default function HospitalDashboard() {
     loadHospitalData();
   }, [loadHospitalData]);
 
+  const isResourceManager = user?.role === 'ADMIN' || user?.staff_role === 'RESOURCE_MANAGER';
+
   // Auto-refresh admissions queue every 15 seconds
   usePolling(loadHospitalData, 15000, Boolean(hospitalId));
 
   // Resource count adjustment (+/- stepper)
   const handleUpdateResource = async (res, deltaAvail) => {
+    if (!isResourceManager) {
+      addToast('Access Denied: Only authorized Hospital Resource Managers can modify facility capacity or inventory.', 'warning');
+      return;
+    }
     const newAvail = Math.max(0, Math.min(res.total, res.available + deltaAvail));
     if (newAvail === res.available) return;
 
@@ -108,6 +114,10 @@ export default function HospitalDashboard() {
   };
 
   const handleTotalResourceChange = async (res, newTotal) => {
+    if (!isResourceManager) {
+      addToast('Access Denied: Only authorized Hospital Resource Managers can modify facility capacity.', 'warning');
+      return;
+    }
     const totalNum = Math.max(0, Number(newTotal) || 0);
     const newAvail = Math.min(totalNum, res.available);
 
@@ -290,11 +300,34 @@ export default function HospitalDashboard() {
         {/* Tab 1: Resources Management */}
         {activeTab === 'resources' && (
           <div className="tab-pane resources-tab">
+            {!isResourceManager && (
+              <div
+                className="alert-card alert-card-info"
+                style={{
+                  marginBottom: '1.25rem',
+                  padding: '0.85rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#f0fdfa',
+                  border: '1px solid #ccfbf1',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                }}
+              >
+                <div>
+                  <strong style={{ color: '#0f766e' }}>Clinical View ({user?.name}):</strong> You have view-only access to hospital resource counts. Bed, ICU, and ventilator capacity management is restricted to authorized Hospital Resource Managers.
+                </div>
+                <Badge variant="info">Clinical Staff</Badge>
+              </div>
+            )}
+
             <div className="tab-header-row">
               <div>
                 <h3>Hospital Resource Inventory</h3>
                 <p className="muted">
-                  Update active available beds, ICU units, and ventilators in real time. Available counts cannot exceed total capacity.
+                  {isResourceManager
+                    ? 'Update active available beds, ICU units, and ventilators in real time. Available counts cannot exceed total capacity.'
+                    : 'Current live facility bed and equipment occupancy levels reported to the MediLink network.'}
                 </p>
               </div>
             </div>
@@ -325,7 +358,8 @@ export default function HospitalDashboard() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          disabled={res.available <= 0}
+                          disabled={!isResourceManager || res.available <= 0}
+                          title={!isResourceManager ? 'Requires Hospital Resource Manager role' : undefined}
                           onClick={() => handleUpdateResource(res, -1)}
                         >
                           -1
@@ -334,7 +368,8 @@ export default function HospitalDashboard() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          disabled={res.available >= res.total}
+                          disabled={!isResourceManager || res.available >= res.total}
+                          title={!isResourceManager ? 'Requires Hospital Resource Manager role' : undefined}
                           onClick={() => handleUpdateResource(res, 1)}
                         >
                           +1
@@ -350,6 +385,8 @@ export default function HospitalDashboard() {
                         min="0"
                         className="form-input input-narrow"
                         defaultValue={res.total}
+                        disabled={!isResourceManager}
+                        title={!isResourceManager ? 'Capacity modification is restricted to Hospital Resource Managers' : undefined}
                         onBlur={(e) => handleTotalResourceChange(res, e.target.value)}
                       />
                     </div>

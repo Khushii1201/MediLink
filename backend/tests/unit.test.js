@@ -17,22 +17,22 @@ before(() => {
 });
 
 describe('Unit Tests: Core Algorithms & Pure Domain Services', () => {
-  test('Haversine distance calculation is accurate across Delhi NCR coordinates', () => {
-    // Distance between AIIMS (28.5672, 77.2100) and Safdarjung (28.5701, 77.2078) ~0.39 km
-    const dist = distanceKm(28.5672, 77.2100, 28.5701, 77.2078);
+  test('Haversine distance calculation is accurate across Jaipur coordinates', () => {
+    // Distance between SMS Hospital (26.8953, 75.8155) and SDMH (26.8911, 75.8062) ~1.04 km
+    const dist = distanceKm(26.8953, 75.8155, 26.8911, 75.8062);
     assert.ok(dist !== null, 'Distance should not be null');
-    assert.ok(dist >= 0.3 && dist <= 0.6, `Expected ~0.4 km, got ${dist} km`);
+    assert.ok(dist >= 0.8 && dist <= 1.3, `Expected ~1.04 km, got ${dist} km`);
 
-    // Distance between AIIMS and Medanta Gurugram (28.4395, 77.0425) ~19.6 km
-    const distGurugram = distanceKm(28.5672, 77.2100, 28.4395, 77.0425);
-    assert.ok(distGurugram >= 18 && distGurugram <= 23, `Expected ~20 km, got ${distGurugram} km`);
+    // Distance between SMS Hospital and Fortis Escorts Jaipur (26.8524, 75.8055) ~4.87 km
+    const distFortis = distanceKm(26.8953, 75.8155, 26.8524, 75.8055);
+    assert.ok(distFortis >= 4.0 && distFortis <= 5.5, `Expected ~4.87 km, got ${distFortis} km`);
 
     // Identical points return 0
-    assert.equal(distanceKm(28.6139, 77.2090, 28.6139, 77.2090), 0);
+    assert.equal(distanceKm(26.9124, 75.7873, 26.9124, 75.7873), 0);
 
     // Invalid coordinates return null
-    assert.equal(distanceKm(null, 77.2090, 28.6139, 77.2090), null);
-    assert.equal(distanceKm(95.0, 77.2090, 28.6139, 77.2090), null);
+    assert.equal(distanceKm(null, 75.7873, 26.9124, 75.7873), null);
+    assert.equal(distanceKm(95.0, 75.7873, 26.9124, 75.7873), null);
   });
 
   test('Waiting time estimation formula dynamically adjusts with bed occupancy and pending queue', () => {

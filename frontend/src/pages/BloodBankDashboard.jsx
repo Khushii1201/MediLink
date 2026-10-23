@@ -43,8 +43,8 @@ export default function BloodBankDashboard() {
     name: '',
     address: '',
     phone: '',
-    latitude: 28.6139,
-    longitude: 77.2090,
+    latitude: 26.9124,
+    longitude: 75.7873,
   });
   const [profileSaving, setProfileSaving] = useState(false);
 
@@ -64,8 +64,8 @@ export default function BloodBankDashboard() {
           name: currentBank.name || '',
           address: currentBank.address || '',
           phone: currentBank.phone || '',
-          latitude: currentBank.latitude || 28.6139,
-          longitude: currentBank.longitude || 77.2090,
+          latitude: currentBank.latitude || 26.9124,
+          longitude: currentBank.longitude || 75.7873,
         });
       }
 

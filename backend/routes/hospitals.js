@@ -234,7 +234,7 @@ router.delete('/:id', authRequired, requireRole('ADMIN'), (req, res) => {
   res.json({ ok: true, message: 'Hospital deleted successfully' });
 });
 
-// Update hospital profile (Hospital staff or Admin)
+// Update hospital profile (Hospital resource manager or Admin)
 router.put('/:id/profile', authRequired, requireRole('HOSPITAL', 'ADMIN'), (req, res) => {
   const hospitalId = Number(req.params.id);
   if (req.user.role === 'HOSPITAL' && req.user.hospital_id !== hospitalId) {
@@ -292,6 +292,11 @@ router.post('/:id/resources', authRequired, requireRole('HOSPITAL', 'ADMIN'), (r
   if (req.user.role === 'HOSPITAL' && req.user.hospital_id !== hospitalId) {
     return res.status(403).json({ error: 'You can only create resources for your own hospital' });
   }
+  if (req.user.role === 'HOSPITAL' && req.user.staff_role !== 'RESOURCE_MANAGER') {
+    return res.status(403).json({
+      error: 'Access Denied: Only authorized hospital resource managers or administrators can create facility resources.',
+    });
+  }
 
   const { type, total, available } = req.body;
   const validTypes = ['BED', 'ICU', 'VENTILATOR'];
@@ -324,11 +329,17 @@ router.post('/:id/resources', authRequired, requireRole('HOSPITAL', 'ADMIN'), (r
   res.status(201).json(db.prepare('SELECT * FROM resources WHERE resource_id = ?').get(info.lastInsertRowid));
 });
 
-// Update hospital resource count
+// Update hospital resource count (Restricted to Hospital Resource Managers and Admins)
 router.put('/:id/resources/:resourceId', authRequired, requireRole('HOSPITAL', 'ADMIN'), (req, res) => {
   const hospitalId = Number(req.params.id);
   if (req.user.role === 'HOSPITAL' && req.user.hospital_id !== hospitalId) {
     return res.status(403).json({ error: 'You can only update your own hospital resources' });
+  }
+
+  if (req.user.role === 'HOSPITAL' && req.user.staff_role !== 'RESOURCE_MANAGER') {
+    return res.status(403).json({
+      error: 'Access Denied: Doctors and clinical staff are not authorized to modify hospital resource capacity or availability. Contact your hospital resource manager.',
+    });
   }
 
   const resource = db.prepare('SELECT * FROM resources WHERE resource_id = ? AND hospital_id = ?').get(req.params.resourceId, hospitalId);
@@ -343,6 +354,14 @@ router.put('/:id/resources/:resourceId', authRequired, requireRole('HOSPITAL', '
   }
   if (newAvailable > newTotal) {
     return res.status(400).json({ error: 'available cannot exceed total capacity' });
+  }
+
+  // Handle capacity correctly: cannot reduce total capacity below currently occupied beds
+  const currentlyOccupied = Math.max(0, resource.total - resource.available);
+  if (total !== undefined && newTotal < currentlyOccupied) {
+    return res.status(409).json({
+      error: `Cannot reduce total capacity to ${newTotal}. There are currently ${currentlyOccupied} occupied ${resource.type.toLowerCase()} units in use.`,
+    });
   }
 
   db.prepare('UPDATE resources SET total = ?, available = ? WHERE resource_id = ?')

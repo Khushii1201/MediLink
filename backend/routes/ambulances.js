@@ -7,7 +7,9 @@ const { isValidCoordinate } = require('../middleware/validate');
 
 const router = express.Router();
 
-// Helper to find the nearest available ambulance to pickup coordinates, optionally excluding an ID
+const MAX_DISPATCH_RADIUS_KM = 50;
+
+// Helper to find the nearest available ambulance to pickup coordinates within operational radius, optionally excluding an ID
 function findNearestAvailableAmbulance(pickupLat, pickupLng, excludeId = null) {
   let query = "SELECT * FROM ambulances WHERE status = 'AVAILABLE'";
   const params = [];
@@ -23,19 +25,24 @@ function findNearestAvailableAmbulance(pickupLat, pickupLng, excludeId = null) {
     let minDistance = Infinity;
 
     for (const amb of availableAmbulances) {
+      if (amb.latitude === null || amb.longitude === null) continue;
       const dist = distanceKm(pickupLat, pickupLng, amb.latitude, amb.longitude);
-      const effectiveDist = dist !== null ? dist : 99999;
-      if (effectiveDist < minDistance) {
-        minDistance = effectiveDist;
-        nearest = amb;
-      } else if (effectiveDist === minDistance && nearest && amb.ambulance_id < nearest.ambulance_id) {
-        nearest = amb;
+      if (dist === null) continue;
+
+      // Do not assign ambulances hundreds of kilometres away: enforce operational range
+      if (dist <= MAX_DISPATCH_RADIUS_KM) {
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearest = amb;
+        } else if (dist === minDistance && nearest && amb.ambulance_id < nearest.ambulance_id) {
+          nearest = amb;
+        }
       }
     }
-    return nearest || availableAmbulances[0];
+    return nearest;
   }
 
-  // Fallback: lowest id
+  // Fallback if no coordinates provided: lowest id
   availableAmbulances.sort((a, b) => a.ambulance_id - b.ambulance_id);
   return availableAmbulances[0];
 }
@@ -87,6 +94,8 @@ router.post('/requests', authRequired, requireRole('PATIENT'), (req, res) => {
     return res.status(400).json({ error: 'Invalid pickup coordinates' });
   }
 
+  let failureReason = null;
+
   const createReqTx = db.transaction(() => {
     let reqStatus = 'REQUESTED';
     let assignedAmbulanceId = null;
@@ -103,6 +112,15 @@ router.post('/requests', authRequired, requireRole('PATIENT'), (req, res) => {
       }
       // Contended: candidate was taken concurrently; find next nearest excluding candidate
       candidate = findNearestAvailableAmbulance(lat, lng, candidate.ambulance_id);
+    }
+
+    if (!assignedAmbulanceId) {
+      const anyAvailable = db.prepare("SELECT COUNT(*) AS c FROM ambulances WHERE status = 'AVAILABLE'").get().c;
+      if (anyAvailable > 0 && lat !== null && lng !== null) {
+        failureReason = 'No available fleet ambulances within operational dispatch range (50 km). Your request has been queued.';
+      } else {
+        failureReason = 'All fleet ambulances are currently dispatched on active emergencies or offline. Your request has been queued.';
+      }
     }
 
     const info = db.prepare(`
@@ -130,10 +148,17 @@ router.post('/requests', authRequired, requireRole('PATIENT'), (req, res) => {
     action: 'CREATE',
     entity: 'ambulance_requests',
     entity_id: requestId,
-    details: { assigned },
+    details: { assigned, failureReason },
   });
 
-  res.status(201).json(db.prepare('SELECT * FROM ambulance_requests WHERE request_id = ?').get(requestId));
+  const requestRow = db.prepare('SELECT * FROM ambulance_requests WHERE request_id = ?').get(requestId);
+  res.status(201).json({
+    ...requestRow,
+    assignment_status: assigned ? 'ASSIGNED' : 'QUEUED',
+    assignment_message: assigned
+      ? 'Nearest available fleet ambulance assigned within operational radius.'
+      : failureReason,
+  });
 });
 
 // List ambulance requests by role

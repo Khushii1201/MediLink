@@ -2,7 +2,7 @@
  * MediLink Operational Anomaly Detection & Resource Monitoring Engine
  *
  * Provides deterministic, explainable, rule-based detection of operational irregularities,
- * data integrity violations, and emergency coordination bottlenecks across Delhi NCR.
+ * data integrity violations, and emergency coordination bottlenecks across Jaipur.
  */
 
 function detectAnomalies(db, options = {}) {

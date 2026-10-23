@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const DEFAULT_DELHI_COORDS = { lat: 28.6139, lng: 77.2090 };
+const DEFAULT_JAIPUR_COORDS = { lat: 26.9124, lng: 75.7873 };
 
 export function useGeolocation(autoFetch = true) {
-  const [coords, setCoords] = useState(DEFAULT_DELHI_COORDS);
+  const [coords, setCoords] = useState(DEFAULT_JAIPUR_COORDS);
   const [hasUserLocation, setHasUserLocation] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);

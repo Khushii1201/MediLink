@@ -95,14 +95,14 @@ describe('Concurrency & Race-Condition Safeguards', () => {
     db.prepare("UPDATE ambulances SET status = 'OFFLINE' WHERE ambulance_id != 1").run();
     db.prepare("UPDATE ambulances SET status = 'AVAILABLE' WHERE ambulance_id = 1").run();
 
-    // Patient 1 requests ambulance
+    // Patient 1 requests ambulance in Jaipur
     const req1 = await request(app)
       .post('/api/ambulances/requests')
       .set('Authorization', `Bearer ${patientToken}`)
       .send({
-        pickup_location: 'Connaught Place Circle, New Delhi',
-        pickup_lat: 28.6315,
-        pickup_lng: 77.2167,
+        pickup_location: 'Panch Batti, M.I. Road, Jaipur',
+        pickup_lat: 26.9170,
+        pickup_lng: 75.8110,
       });
     assert.equal(req1.status, 201);
     assert.equal(req1.body.status, 'ACCEPTED');
@@ -117,9 +117,9 @@ describe('Concurrency & Race-Condition Safeguards', () => {
       .post('/api/ambulances/requests')
       .set('Authorization', `Bearer ${patient2Token}`)
       .send({
-        pickup_location: 'Hauz Khas Village, New Delhi',
-        pickup_lat: 28.5494,
-        pickup_lng: 77.1932,
+        pickup_location: 'Gaurav Tower, Malviya Nagar, Jaipur',
+        pickup_lat: 26.8530,
+        pickup_lng: 75.8050,
       });
     assert.equal(req2.status, 201);
     assert.equal(req2.body.status, 'REQUESTED', 'Patient 2 must be queued as REQUESTED when no ambulance is free');
@@ -134,8 +134,8 @@ describe('Concurrency & Race-Condition Safeguards', () => {
   });
 
   test('Concurrent blood reservations: only available stock can be approved, inventory never negative', async () => {
-    // Red Cross blood bank (id: 1) AB- group has unit_id = 6. Set available = 1
-    const targetUnit = db.prepare("SELECT unit_id, quantity FROM blood_units WHERE bloodbank_id = 1 AND blood_group = 'AB-'").get();
+    // SMS Blood Bank (id: 1) A- group. Set available = 1
+    const targetUnit = db.prepare("SELECT unit_id, quantity FROM blood_units WHERE bloodbank_id = 1 AND blood_group = 'A-'").get();
     db.prepare('UPDATE blood_units SET available = 1, quantity = 5 WHERE unit_id = ?').run(targetUnit.unit_id);
 
     // Patient 1 reserves 1 unit

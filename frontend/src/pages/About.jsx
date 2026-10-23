@@ -1,112 +1,210 @@
+import { Link } from 'react-router-dom';
+import { Button } from '../components/Button';
+
 export default function About() {
   return (
     <div className="page about-page">
       <div className="page-header text-center" style={{ maxWidth: '780px', margin: '0 auto 2.5rem auto' }}>
-        <span className="section-tag">About MediLink</span>
-        <h2>Centralized Healthcare Coordination Architecture</h2>
+        <span className="section-tag">How MediLink Works</span>
+        <h2>Connecting Patients with Timely Emergency Care</h2>
         <p className="muted">
-          MediLink is an open, full-stack emergency coordination and resource discovery system connecting patients,
-          hospitals, ambulance operators, blood banks, and health authorities into a unified network.
+          MediLink coordinates critical healthcare resources across hospitals, ambulance operators,
+          and blood banks to help patients and families navigate medical emergencies with clarity and confidence.
         </p>
       </div>
 
       <div className="about-sections-wrap" style={{ maxWidth: '850px', margin: '0 auto' }}>
-        {/* Core Architecture */}
+        {/* Step 1: Hospital Discovery */}
         <div className="card about-card">
-          <h3>1. System Architecture & Tech Stack</h3>
+          <div className="about-step-header">
+            <span className="about-step-number">1</span>
+            <div>
+              <h3>Find and Compare Nearby Hospitals</h3>
+              <p className="muted">Real-time resource visibility before you travel</p>
+            </div>
+          </div>
           <p>
-            MediLink is engineered with a lean, reliable full-stack architecture focused on high auditability and transactional integrity:
+            During an emergency, visiting a hospital only to discover that beds or specialized care are unavailable
+            causes dangerous delays. MediLink allows patients and families to:
           </p>
-          <ul className="about-tech-list">
-            <li><strong>Frontend:</strong> React 19, Vite 8, React Router 7, and Leaflet OpenStreetMap tiles. Fast, responsive, accessible across mobile and desktop devices.</li>
-            <li><strong>Backend:</strong> Node.js 20+ with Express 4, hardened with Helmet, strict rate limiters, and defensive validation middleware.</li>
-            <li><strong>Database:</strong> SQLite with WAL (Write-Ahead Logging) and enforced foreign-key constraints via <code>better-sqlite3</code>.</li>
-            <li><strong>Security:</strong> Role-based access control (RBAC), bcrypt salted hashing, and signed JWT authentication.</li>
+          <ul className="about-feature-list">
+            <li>
+              <strong>Check Current Bed Capacity:</strong> View available General Ward, ICU, and Ventilator beds at verified regional hospitals.
+            </li>
+            <li>
+              <strong>Compare Distances:</strong> See straight-line travel distances from your location to each medical center.
+            </li>
+            <li>
+              <strong>Filter by Medical Specialty:</strong> Locate specialized facilities equipped for Cardiology, Trauma Surgery, Neurology, Pediatrics, and more.
+            </li>
+            <li>
+              <strong>Estimate Waiting Times:</strong> Review estimated emergency turnaround times based on reported ward activity and current occupancy.
+            </li>
+          </ul>
+          <div style={{ marginTop: '1rem' }}>
+            <Link to="/hospitals">
+              <Button variant="outline" size="sm">Explore Hospital Directory</Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Step 2: Recommendations */}
+        <div className="card about-card">
+          <div className="about-step-header">
+            <span className="about-step-number">2</span>
+            <div>
+              <h3>Clear, Transparent Recommendations</h3>
+              <p className="muted">Intelligent guidance based on what matters most in an emergency</p>
+            </div>
+          </div>
+          <p>
+            MediLink evaluates multiple practical factors to suggest suitable hospitals for your situation:
+          </p>
+          <div className="about-grid-two">
+            <div className="about-subcard">
+              <h4>Proximity</h4>
+              <p className="muted">Closer facilities are prioritized so transit time is minimized during critical windows.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Available Capacity</h4>
+              <p className="muted">Hospitals with confirmed open beds rank higher than facilities operating near full capacity.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Expected Turnaround</h4>
+              <p className="muted">Estimated wait times help avoid routing emergencies to heavily congested emergency rooms.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Clinical Specialty</h4>
+              <p className="muted">When you search for specific medical care, hospitals with that department are highlighted.</p>
+            </div>
+          </div>
+          <p className="muted" style={{ fontSize: '0.875rem', marginTop: '1rem' }}>
+            Every recommendation includes a plain-language summary explaining why a facility was suggested, empowering you to make informed decisions.
+          </p>
+        </div>
+
+        {/* Step 3: Emergency Admission & Ambulances */}
+        <div className="card about-card">
+          <div className="about-step-header">
+            <span className="about-step-number">3</span>
+            <div>
+              <h3>Emergency Requests & Ambulance Coordination</h3>
+              <p className="muted">Fast-track admission notices and nearest-vehicle dispatch</p>
+            </div>
+          </div>
+          <p>
+            When every minute counts, MediLink coordinates critical touchpoints simultaneously:
+          </p>
+          <ul className="about-feature-list">
+            <li>
+              <strong>Advance Admission Requests:</strong> Send an emergency triage notice to your chosen hospital so clinical teams can prepare before your arrival.
+            </li>
+            <li>
+              <strong>Nearest Ambulance Dispatch:</strong> The system automatically searches for the closest available ambulance within operational range and alerts the operator.
+            </li>
+            <li>
+              <strong>Live Trip Tracking:</strong> Once dispatched, track the vehicle's progress on an interactive map with updated status milestones from dispatch to destination.
+            </li>
           </ul>
         </div>
 
-        {/* Recommendation Engine */}
+        {/* Step 4: Blood Inventory */}
         <div className="card about-card">
-          <h3>2. Explainable Recommendation Algorithm</h3>
-          <p>
-            Rather than relying on opaque machine learning black boxes, MediLink employs an explainable, deterministic rule-based scoring engine with explicit factor weights:
-          </p>
-
-          <div className="weights-table-card">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Factor</th>
-                  <th>Standard Weight</th>
-                  <th>Normalized Function</th>
-                  <th>Rationale</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Geographical Distance</strong></td>
-                  <td>35% (0.35)</td>
-                  <td><code>max(0, 1 - distance_km / 25)</code></td>
-                  <td>Prioritizes closer facilities for critical emergency transit within a 25 km radius.</td>
-                </tr>
-                <tr>
-                  <td><strong>Resource Availability</strong></td>
-                  <td>30% (0.30)</td>
-                  <td><code>available / total</code></td>
-                  <td>Ensures patients are routed to hospitals with verified empty General, ICU, or Ventilator beds.</td>
-                </tr>
-                <tr>
-                  <td><strong>Estimated Waiting Time</strong></td>
-                  <td>20% (0.20)</td>
-                  <td><code>max(0, 1 - wait_min / 120)</code></td>
-                  <td>Favors facilities with shorter turnaround times to prevent ER overcrowding.</td>
-                </tr>
-                <tr>
-                  <td><strong>Specialty Match</strong></td>
-                  <td>15% (0.15)</td>
-                  <td><code>1.0 if match else 0.0</code></td>
-                  <td>Routes specialized conditions (e.g., Cardiology, Trauma) to matching specialty departments.</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="about-step-header">
+            <span className="about-step-number">4</span>
+            <div>
+              <h3>Blood Inventory & Hold Reservations</h3>
+              <p className="muted">Locate matching units and secure blood products quickly</p>
+            </div>
           </div>
-          <p className="muted" style={{ fontSize: '0.85rem', marginTop: '0.75rem' }}>
-            * Note: If no specific specialty is requested by the patient, the 15% specialty weight is proportionally redistributed across distance, availability, and wait time.
+          <p>
+            Finding compatible blood units during surgery or acute trauma can be stressful. MediLink simplifies this process:
           </p>
+          <ul className="about-feature-list">
+            <li>
+              <strong>Multi-Bank Search:</strong> Browse live stock listings across all 8 standard blood groups (A+, A-, B+, B-, AB+, AB-, O+, O-).
+            </li>
+            <li>
+              <strong>Transfusion Compatibility Guidance:</strong> Filter donor units compatible with the patient's blood type (e.g., universal donor O- or recipient AB+).
+            </li>
+            <li>
+              <strong>Urgent Hold Reservations:</strong> Place a reservation request directly through the platform. Blood bank personnel review and hold the units for patient collection.
+            </li>
+          </ul>
+          <div style={{ marginTop: '1rem' }}>
+            <Link to="/blood">
+              <Button variant="outline" size="sm">Check Blood Inventory</Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Dynamic Waiting-Time Formula */}
+        {/* Step 5: How Stakeholders Participate */}
         <div className="card about-card">
-          <h3>3. Waiting-Time Estimation Model</h3>
-          <p>
-            Real waiting times fluctuate with ward load. MediLink calculates dynamic department estimates using staff-reported baseline times adjusted by real-time bed occupancy and active pending admission queues:
-          </p>
-          <div className="formula-box">
-            <code>Estimated Wait = Reported Baseline × (1 + Bed Occupancy Ratio × 0.5) + (5 min × Pending Admissions)</code>
+          <div className="about-step-header">
+            <span className="about-step-number">5</span>
+            <div>
+              <h3>How Healthcare Providers Participate</h3>
+              <p className="muted">A collaborative coordination network</p>
+            </div>
           </div>
-          <p className="muted" style={{ marginTop: '0.75rem' }}>
-            This ensures that as a hospital's beds fill up or new critical admissions enter the triage queue, waiting times dynamically scale to reflect the true operational backlog.
-          </p>
+          <p>MediLink is designed as a shared operational environment where each participant has dedicated responsibilities:</p>
+          <div className="about-grid-two">
+            <div className="about-subcard">
+              <h4>Hospital Resource Managers</h4>
+              <p className="muted">Maintain facility-wide bed, ICU, and ventilator capacity so availability numbers stay accurate.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Clinical Staff & Doctors</h4>
+              <p className="muted">Review incoming emergency admissions, triage urgency levels, and prepare clinical reception.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Ambulance Operators</h4>
+              <p className="muted">Receive nearest dispatch calls, broadcast GPS coordinates during transit, and confirm patient handoff.</p>
+            </div>
+            <div className="about-subcard">
+              <h4>Blood Bank Technicians</h4>
+              <p className="muted">Log available donor units, review reservation requests, and manage unit dispensation.</p>
+            </div>
+          </div>
         </div>
 
-        {/* Boundaries & Limitations */}
-        <div className="card about-card boundary-card">
-          <h3>4. Operational Scope & Boundaries</h3>
+        {/* Step 6: When Resources Are Limited */}
+        <div className="card about-card">
+          <div className="about-step-header">
+            <span className="about-step-number">6</span>
+            <div>
+              <h3>What to Expect When Resources Are Limited</h3>
+              <p className="muted">Transparency during capacity constraints</p>
+            </div>
+          </div>
           <p>
-            To maintain honest and transparent communication, the following boundaries govern the MediLink platform:
+            Healthcare demand can surge unexpectedly during mass emergencies or seasonal peaks. Here is how MediLink handles limited availability:
           </p>
+          <ul className="about-feature-list">
+            <li>
+              <strong>Full Bed Queues:</strong> If a hospital has 0 available beds, the platform marks it as depleted and directs you toward alternate nearby facilities with open capacity.
+            </li>
+            <li>
+              <strong>Ambulance Fleet Busy:</strong> If all ambulances within range are currently on trip, your request is safely queued and flagged so operators can accept it as soon as a vehicle becomes free.
+            </li>
+            <li>
+              <strong>Depleted Blood Stock:</strong> If a specific blood bank has zero units for a blood group, MediLink displays compatible alternatives or nearby blood banks that still have stock.
+            </li>
+          </ul>
+        </div>
+
+        {/* Important Healthcare Boundaries */}
+        <div className="card about-card boundary-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
+          <h3>Important Medical & Safety Information</h3>
           <ul className="boundary-list">
             <li>
-              <strong>Self-Reported Facility Data:</strong> Hospital resource availability and waiting times are maintained by facility staff and demo datasets; MediLink does not claim live integration with proprietary hospital EHR systems.
+              <strong>Informational Coordination:</strong> MediLink provides resource discovery and operational routing. It is not an automated medical diagnostic tool or a clinical triage authority.
             </li>
             <li>
-              <strong>Browser Geolocation & Dispatch:</strong> Location calculations use the Haversine spherical formula and browser GPS coordinates. It is not an official government emergency dispatch network.
+              <strong>Facility-Reported Data:</strong> Bed availability and waiting times reflect provider-reported numbers and demonstration data; always confirm critical requirements directly with the facility.
             </li>
             <li>
-              <strong>Not Clinical Triage:</strong> Recommendations, scores, and waiting times are mathematical estimates intended for coordination and comparison only. They do not constitute clinical judgment or triage diagnoses.
-            </li>
-            <li>
-              <strong>Emergency Services:</strong> In any life-threatening situation, call your local emergency response service (<strong>112 in India</strong>) immediately.
+              <strong>Life-Threatening Emergencies:</strong> If you or someone with you is experiencing a severe, life-threatening medical emergency, call your national emergency hotline (<strong>112 in India</strong>) or proceed immediately to the nearest emergency room.
             </li>
           </ul>
         </div>

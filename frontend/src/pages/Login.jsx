@@ -15,10 +15,11 @@ const DASHBOARD_PATH = {
 
 const DEMO_ACCOUNTS = [
   { email: 'admin@medilink.com', role: 'ADMIN', label: 'Platform Administrator' },
-  { email: 'patient@medilink.com', role: 'PATIENT', label: 'Registered Patient' },
-  { email: 'hospital@medilink.com', role: 'HOSPITAL', label: 'Hospital Ops (AIIMS)' },
-  { email: 'ambulance@medilink.com', role: 'AMBULANCE', label: 'Ambulance Operator' },
-  { email: 'bloodbank@medilink.com', role: 'BLOODBANK', label: 'Blood Bank Ops (Red Cross)' },
+  { email: 'patient@medilink.com', role: 'PATIENT', label: 'Patient (Riya Sharma)' },
+  { email: 'hospital@medilink.com', role: 'HOSPITAL', label: 'Doctor / Clinical Staff (Dr. Arjun)' },
+  { email: 'manager@medilink.com', role: 'HOSPITAL', label: 'Hospital Resource Manager (Sunita Sharma)' },
+  { email: 'ambulance@medilink.com', role: 'AMBULANCE', label: 'Ambulance Operator (RJ-14 Fleet)' },
+  { email: 'bloodbank@medilink.com', role: 'BLOODBANK', label: 'Blood Bank Staff (SMS Blood Bank)' },
 ];
 
 export default function Login() {

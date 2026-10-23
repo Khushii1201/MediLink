@@ -31,6 +31,7 @@ function getDb(customPath) {
       password_hash TEXT NOT NULL,
       phone TEXT,
       role TEXT NOT NULL CHECK(role IN ('PATIENT','HOSPITAL','AMBULANCE','BLOODBANK','ADMIN')),
+      staff_role TEXT DEFAULT 'CLINICAL',
       hospital_id INTEGER,
       ambulance_id INTEGER,
       bloodbank_id INTEGER,
@@ -193,6 +194,13 @@ function getDb(customPath) {
     CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity);
   `);
+
+  // Safe runtime migration for existing databases
+  try {
+    db.exec("ALTER TABLE users ADD COLUMN staff_role TEXT DEFAULT 'CLINICAL'");
+  } catch (err) {
+    // Column already exists or table was just created
+  }
 
   return db;
 }

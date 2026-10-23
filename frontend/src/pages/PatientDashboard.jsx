@@ -109,7 +109,7 @@ export default function PatientDashboard() {
           <span className="badge badge-success">Patient Portal</span>
           <h2>Welcome, {user?.name || 'Patient'}</h2>
           <p className="muted">
-            Coordinate healthcare resources across Delhi NCR. Pinpoint available beds, track ambulances, and reserve blood.
+            Coordinate healthcare resources across Jaipur and surrounding regions. Pinpoint available beds, track ambulances, and reserve blood.
           </p>
         </div>
         <div className="banner-quick-actions">

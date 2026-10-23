@@ -106,7 +106,7 @@ function MapClickHandler({ onMapClick }) {
 }
 
 export function MapView({
-  center = [28.6139, 77.2090], // Delhi NCR center
+  center = [26.9124, 75.7873], // Jaipur city center default
   zoom = 12,
   markers = [],
   routeLine = null,
@@ -118,7 +118,7 @@ export function MapView({
   const validCenter =
     center && isValidCoord(center[0], center[1])
       ? center
-      : [28.6139, 77.2090];
+      : [26.9124, 75.7873];
 
   return (
     <div className={`map-wrapper ${className}`} style={{ height, width: '100%', position: 'relative' }}>

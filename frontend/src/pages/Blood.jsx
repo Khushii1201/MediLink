@@ -21,6 +21,7 @@ export default function Blood() {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Reservation modal state
   const [reserveModalOpen, setReserveModalOpen] = useState(false);
@@ -30,6 +31,7 @@ export default function Blood() {
 
   const fetchUnits = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = {};
       if (selectedGroup) params.blood_group = selectedGroup;
@@ -38,9 +40,10 @@ export default function Blood() {
         params.lng = coords.lng;
       }
       const data = await api.searchBloodUnits(params);
-      setUnits(data || []);
+      setUnits(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load blood units:', err);
+      setError(err.message || 'Unable to load blood inventory listings. Please check your network connection.');
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,7 @@ export default function Blood() {
         <div>
           <h2>Blood Bank Directory & Stock Locator</h2>
           <p className="muted">
-            Locate available blood units across certified blood banks in Delhi NCR. Live inventory and patient reservations.
+            Locate available blood units across certified blood banks in Jaipur and surrounding regions. Live inventory and patient reservations.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={requestLocation} loading={geoLoading}>
@@ -130,19 +133,34 @@ export default function Blood() {
         </div>
       </div>
 
-      {/* Stock Listing */}
+      {/* Dynamic Results Count Bar */}
       <div className="results-count-bar">
-        <span>Showing <strong>{units.length}</strong> inventory listings</span>
+        <span>
+          Showing <strong>{loading ? '...' : units.length}</strong>{' '}
+          {units.length === 1 ? 'inventory listing' : 'inventory listings'}
+          {selectedGroup ? ` for blood group ${selectedGroup}` : ' across all blood groups'}
+        </span>
       </div>
 
       {loading ? (
         <SkeletonCard count={4} />
+      ) : error ? (
+        <div className="card alert-card alert-card-danger" style={{ textAlign: 'center', padding: '2rem' }}>
+          <p style={{ color: 'var(--color-danger)', fontWeight: 600, marginBottom: '1rem' }}>{error}</p>
+          <Button variant="outline" size="sm" onClick={fetchUnits}>
+            Retry Loading Inventory
+          </Button>
+        </div>
       ) : units.length === 0 ? (
         <EmptyState
-          title="No blood units found"
-          message="No blood banks currently have stock listed for the selected blood group."
-          actionLabel="View all blood groups"
-          onAction={() => setSelectedGroup('')}
+          title={selectedGroup ? `No ${selectedGroup} blood inventory found` : 'No blood inventory found'}
+          message={
+            selectedGroup
+              ? 'No inventory available for this blood group across registered blood banks.'
+              : 'No blood bank inventory records match the current criteria.'
+          }
+          actionLabel={selectedGroup ? 'View All Blood Groups' : undefined}
+          onAction={selectedGroup ? () => setSelectedGroup('') : undefined}
         />
       ) : (
         <div className="blood-cards-grid">

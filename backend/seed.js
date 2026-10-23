@@ -16,8 +16,8 @@ function seedDatabase() {
       const adminPass = process.env.ADMIN_PASSWORD || 'AdminPass123!';
       const hash = bcrypt.hashSync(adminPass, 10);
       db.prepare(`
-        INSERT INTO users (name, email, password_hash, phone, role, active)
-        VALUES ('System Administrator', ?, ?, '9999900000', 'ADMIN', 1)
+        INSERT INTO users (name, email, password_hash, phone, role, staff_role, active)
+        VALUES ('System Administrator', ?, ?, '9999900000', 'ADMIN', 'ADMIN', 1)
       `).run(adminEmail.toLowerCase(), hash);
       console.log(`Production admin created: ${adminEmail}`);
     } else {
@@ -32,9 +32,9 @@ function seedDatabase() {
     return;
   }
 
-  console.log('Seeding rich demo data for MediLink (Delhi NCR)...');
+  console.log('Seeding rich demo data for MediLink (Jaipur, Rajasthan)...');
 
-  // 1. Insert 8 Hospitals
+  // 1. Insert 8 Hospitals in Jaipur
   const insertHospital = db.prepare(`
     INSERT INTO hospitals (name, address, latitude, longitude, specialties, insurance_info, phone, email, description)
     VALUES (@name, @address, @latitude, @longitude, @specialties, @insurance_info, @phone, @email, @description)
@@ -42,92 +42,92 @@ function seedDatabase() {
 
   const hospitalsData = [
     {
-      name: 'All India Institute of Medical Sciences (AIIMS)',
-      address: 'Ansari Nagar, New Delhi',
-      latitude: 28.5672,
-      longitude: 77.2100,
-      specialties: 'Cardiology, Trauma Surgery, Neurology, Oncology, Pediatrics',
-      insurance_info: 'CGHS, ECHS, Ayushman Bharat, Star Health',
-      phone: '+91-11-26588500',
-      email: 'emergency@aiims.edu.in',
-      description: 'Apex premier public healthcare and tertiary referral research institute offering 24/7 comprehensive emergency care.',
+      name: 'Sawai Man Singh Hospital (SMS Hospital)',
+      address: 'Jawahar Lal Nehru Marg, Ashok Nagar, Jaipur',
+      latitude: 26.8953,
+      longitude: 75.8155,
+      specialties: 'Emergency & Trauma, Cardiology, Neurology, General Surgery, Nephrology',
+      insurance_info: 'RGHS, Chiranjeevi, Ayushman Bharat, Star Health',
+      phone: '+91-141-2560291',
+      email: 'emergency@smshospitaljaipur.org',
+      description: 'Premier apex public healthcare teaching hospital in Rajasthan offering 24/7 dedicated trauma care and multispecialty emergency services.',
     },
     {
-      name: 'Safdarjung Hospital & Trauma Centre',
-      address: 'Ring Road, Opposite AIIMS, New Delhi',
-      latitude: 28.5701,
-      longitude: 77.2078,
-      specialties: 'Trauma Surgery, Orthopedics, Burns & Plastic Surgery, Pulmonary Care',
-      insurance_info: 'CGHS, Ayushman Bharat, National Insurance',
-      phone: '+91-11-26165060',
-      email: 'info@safdarjunghospital.in',
-      description: 'Major central government multi-specialty healthcare centre with state-of-the-art dedicated trauma ward.',
+      name: 'Fortis Escorts Hospital Jaipur',
+      address: 'Jawahar Lal Nehru Marg, Malviya Nagar, Jaipur',
+      latitude: 26.8524,
+      longitude: 75.8055,
+      specialties: 'Cardiology, Cardiac Surgery, Critical Care, Orthopedics, Neurosciences',
+      insurance_info: 'Star Health, HDFC Ergo, ICICI Lombard, Niva Bupa, Care Health',
+      phone: '+91-141-2547000',
+      email: 'emergency.jaipur@fortishealthcare.com',
+      description: 'NABH and NABL accredited super-specialty hospital renowned for advanced interventional cardiology and emergency cardiac care.',
     },
     {
-      name: 'Max Super Speciality Hospital, Saket',
-      address: '1, 2 Press Enclave Marg, Saket, New Delhi',
-      latitude: 28.5284,
-      longitude: 77.2131,
-      specialties: 'Cardiology, Cardiac Surgery, Oncology, Nephrology, Neurosciences',
-      insurance_info: 'HDFC Ergo, ICICI Lombard, Star Health, Max Bupa, Care Health',
-      phone: '+91-11-26515050',
-      email: 'emergency.saket@maxhealthcare.com',
-      description: 'JCI-accredited tertiary care facility with advanced cardiac life support and precision diagnostics.',
+      name: 'Eternal Heart Care Centre (EHCC)',
+      address: 'Jawahar Circle, Malviya Nagar, Jaipur',
+      latitude: 26.8458,
+      longitude: 75.8012,
+      specialties: 'Cardiology, Critical Care, Neurology, Oncology, Organ Transplant',
+      insurance_info: 'CGHS, RGHS, Star Health, ICICI Lombard, Max Bupa',
+      phone: '+91-141-5174000',
+      email: 'emergency@eternalhospital.com',
+      description: 'Quaternary-care heart and multispecialty hospital with high-dependency intensive care units and 24/7 stroke response.',
     },
     {
-      name: 'Fortis Memorial Research Institute',
-      address: 'Sector 44, Opposite City Centre Metro, Gurugram',
-      latitude: 28.4595,
-      longitude: 77.0725,
-      specialties: 'Robotic Surgery, Bone Marrow Transplant, Neurology, Critical Care',
-      insurance_info: 'Star Health, Niva Bupa, Bajaj Allianz, Care Health',
-      phone: '+91-124-4962200',
-      email: 'care.gurugram@fortishealthcare.com',
-      description: 'Next-generation quaternary care hospital known for cutting-edge medical technology and international patient care.',
+      name: 'Manipal Hospital Jaipur',
+      address: 'Sector 5, Main Sikar Road, Vidhyadhar Nagar, Jaipur',
+      latitude: 26.9712,
+      longitude: 75.7761,
+      specialties: 'Emergency & Trauma, Gastroenterology, Oncology, Pediatrics, Critical Care',
+      insurance_info: 'Star Health, Care Health, Bajaj Allianz, HDFC Ergo',
+      phone: '+91-141-5164000',
+      email: 'info.jaipur@manipalhospitals.com',
+      description: 'Modern multispecialty hospital serving North Jaipur with comprehensive emergency medicine and dedicated intensive care.',
     },
     {
-      name: 'Indraprastha Apollo Hospitals',
-      address: 'Delhi Mathura Road, Sarita Vihar, New Delhi',
-      latitude: 28.5414,
-      longitude: 77.2842,
-      specialties: 'Organ Transplant, Cardiology, Gastroenterology, Critical Care',
-      insurance_info: 'CGHS, Star Health, ICICI Lombard, New India Assurance',
-      phone: '+91-11-26925858',
-      email: 'assistance@apollohospitals.com',
-      description: 'Renowned hospital network leader featuring dedicated 24-hour pediatric and adult emergency departments.',
+      name: 'Narayana Multispeciality Hospital',
+      address: 'Kumbha Marg, Sector 28, Pratap Nagar, Sanganer, Jaipur',
+      latitude: 26.8045,
+      longitude: 75.8234,
+      specialties: 'Cardiology, Orthopedics, Nephrology, Pulmonology, General Surgery',
+      insurance_info: 'RGHS, Chiranjeevi, Star Health, Reliance General',
+      phone: '+91-141-7122222',
+      email: 'emergency.jaipur@narayanahealth.org',
+      description: 'Flagship tertiary hospital in South Jaipur delivering accessible high-quality clinical care, dialysis, and trauma triage.',
     },
     {
-      name: 'Medanta - The Medicity',
-      address: 'CH Bakhtawar Singh Road, Sector 38, Gurugram',
-      latitude: 28.4394,
-      longitude: 77.0427,
-      specialties: 'Cardiology, Heart Institute, Neurosciences, Oncology, Urology',
-      insurance_info: 'ICICI Lombard, Star Health, HDFC Ergo, Paramount TPA',
-      phone: '+91-124-4141414',
-      email: 'emergency@medanta.org',
-      description: 'One of India’s largest multi-super specialty institutes with dedicated air ambulance landing pad and stroke units.',
+      name: 'Santokba Durlabhji Memorial Hospital (SDMH)',
+      address: 'Bhawani Singh Road, Near Rambagh Circle, Bapu Nagar, Jaipur',
+      latitude: 26.8911,
+      longitude: 75.8062,
+      specialties: 'General Surgery, Pediatrics, Emergency Medicine, Critical Care, Urology',
+      insurance_info: 'RGHS, CGHS, United India, Oriental Insurance, Star Health',
+      phone: '+91-141-2566251',
+      email: 'info@sdmh.in',
+      description: 'Historic trust hospital known for compassionate patient care, extensive pediatric facilities, and active round-the-clock emergency desk.',
     },
     {
-      name: 'Sir Ganga Ram Hospital',
-      address: 'Sir Ganga Ram Hospital Marg, Old Rajinder Nagar, New Delhi',
-      latitude: 28.6386,
-      longitude: 77.1897,
-      specialties: 'General Surgery, Nephrology, Gastroenterology, Orthopedics',
-      insurance_info: 'CGHS, Star Health, United India Insurance, IFFCO Tokio',
-      phone: '+91-11-42254000',
-      email: 'gangaram@sgrh.com',
-      description: 'Premier trust hospital known for high clinical standards, surgical excellence, and accessible patient care.',
+      name: 'Apex Hospital',
+      address: 'SP-4 & 6, Malviya Industrial Area, Malviya Nagar, Jaipur',
+      latitude: 26.8492,
+      longitude: 75.8164,
+      specialties: 'Oncology, Neurosurgery, Critical Care, Orthopedics, Plastic Surgery',
+      insurance_info: 'Star Health, Niva Bupa, IFFCO Tokio, RGHS',
+      phone: '+91-141-2751871',
+      email: 'emergency@apexhospitals.com',
+      description: 'Comprehensive surgical and trauma care hospital equipped with modular operation theatres and advanced life support.',
     },
     {
-      name: 'Jaypee Hospital',
-      address: 'Jaypee Healthcare, Sector 128, Noida',
-      latitude: 28.5135,
-      longitude: 77.3697,
-      specialties: 'Emergency & Trauma, Critical Care, Cardiology, Pediatrics',
-      insurance_info: 'Star Health, Care Health, HDFC Ergo, Oriental Insurance',
-      phone: '+91-120-4122222',
-      email: 'emergency@jaypeehealthcare.com',
-      description: 'Flagship healthcare facility serving Noida and Western UP with full advanced life support services.',
+      name: 'Mahatma Gandhi Hospital',
+      address: 'RIICO Institutional Area, Sitapura, Jaipur',
+      latitude: 26.7725,
+      longitude: 75.8456,
+      specialties: 'Emergency & Trauma, Critical Care, General Medicine, Nephrology, Cardiology',
+      insurance_info: 'Chiranjeevi, RGHS, Ayushman Bharat, Star Health',
+      phone: '+91-141-2771777',
+      email: 'emergency@mgumst.org',
+      description: 'Large medical college and multispecialty healthcare hospital providing critical care, burn treatment, and round-the-clock emergency facilities.',
     },
   ];
 
@@ -142,179 +142,203 @@ function seedDatabase() {
   `);
 
   const doctorsData = [
-    // AIIMS (id: 1)
+    // SMS Hospital (id: 1)
     [1, 'Dr. Arjun Mehta', 'Cardiology', 'MBBS, MD, DM (Cardiology)', 1],
     [1, 'Dr. Priya Nair', 'Trauma Surgery', 'MBBS, MS (General Surgery), MCh (Trauma)', 1],
     [1, 'Dr. Rajesh Khurana', 'Neurology', 'MBBS, MD, DM (Neurology)', 0],
     [1, 'Dr. Sunita Bansal', 'Critical Care', 'MBBS, MD (Anesthesia), FNB (Critical Care)', 1],
-    // Safdarjung (id: 2)
-    [2, 'Dr. Manoj Tiwari', 'Trauma Surgery', 'MBBS, MS (Surgery)', 1],
+    // Fortis Escorts Jaipur (id: 2)
+    [2, 'Dr. Manoj Tiwari', 'Cardiac Surgery', 'MBBS, MS, MCh (CTVS)', 1],
     [2, 'Dr. Ananya Roy', 'Orthopedics', 'MBBS, MS (Orthopedics)', 1],
     [2, 'Dr. Arvind Saxena', 'Pulmonary Care', 'MBBS, MD (Pulmonary Medicine)', 0],
-    // Max Saket (id: 3)
+    // EHCC (id: 3)
     [3, 'Dr. Kavita Rao', 'Neurology', 'MBBS, MD, DM (Neurology)', 1],
     [3, 'Dr. Sameer Khan', 'Cardiology', 'MBBS, MD, DM (Cardiology)', 1],
     [3, 'Dr. Preeti Deshmukh', 'Oncology', 'MBBS, MD (Radiotherapy), DNB', 1],
     [3, 'Dr. Tarun Verma', 'Critical Care', 'MBBS, MD, EDIC', 0],
-    // Fortis Gurugram (id: 4)
-    [4, 'Dr. Ritu Sharma', 'Orthopedics', 'MBBS, MS, MCh (Ortho)', 1],
-    [4, 'Dr. Alok Sen', 'Robotic Surgery', 'MBBS, MS, FACS', 1],
-    [4, 'Dr. Deepa Pillai', 'Critical Care', 'MBBS, MD (Anesthesiology)', 1],
-    // Apollo Sarita Vihar (id: 5)
-    [5, 'Dr. Rohan Bhatt', 'Organ Transplant', 'MBBS, MS, FRCS', 1],
-    [5, 'Dr. Sneha Paul', 'Cardiology', 'MBBS, MD, FACC', 1],
-    [5, 'Dr. Vivek Mishra', 'Critical Care', 'MBBS, MD, FNB', 0],
-    // Medanta Gurugram (id: 6)
-    [6, 'Dr. Naresh Goel', 'Cardiac Surgery', 'MBBS, MS, MCh (CTVS)', 1],
-    [6, 'Dr. Swati Sen', 'Neurology', 'MBBS, MD, DM', 1],
-    [6, 'Dr. Karan Malhotra', 'Urology', 'MBBS, MS, MCh (Urology)', 1],
-    // Ganga Ram (id: 7)
-    [7, 'Dr. Hemant Joshi', 'Nephrology', 'MBBS, MD, DM (Nephrology)', 1],
-    [7, 'Dr. Geeta Aggarwal', 'Gastroenterology', 'MBBS, MD, DM', 1],
-    [7, 'Dr. Prakash Narang', 'General Surgery', 'MBBS, MS', 0],
-    // Jaypee Noida (id: 8)
-    [8, 'Dr. Neeraj Vats', 'Emergency Medicine', 'MBBS, MD (Emergency Medicine)', 1],
-    [8, 'Dr. Shweta Choudhary', 'Pediatrics', 'MBBS, MD (Pediatrics)', 1],
-    [8, 'Dr. Devendra Yadav', 'Critical Care', 'MBBS, MD, IDCCM', 1],
+    // Manipal Hospital Jaipur (id: 4)
+    [4, 'Dr. Ritu Sharma', 'Gastroenterology', 'MBBS, MD, DM (Gastro)', 1],
+    [4, 'Dr. Alok Nath', 'Emergency Medicine', 'MBBS, MD (Emergency Medicine)', 1],
+    [4, 'Dr. Deepa Joshi', 'Pediatrics', 'MBBS, DCH, DNB (Pediatrics)', 1],
+    // Narayana Jaipur (id: 5)
+    [5, 'Dr. Vivek Singhal', 'Nephrology', 'MBBS, MD, DM (Nephrology)', 1],
+    [5, 'Dr. Sneha Pillai', 'Cardiology', 'MBBS, MD, DNB (Cardiology)', 1],
+    [5, 'Dr. Gaurav Bhatt', 'Orthopedics', 'MBBS, MS (Ortho)', 0],
+    // SDMH (id: 6)
+    [6, 'Dr. Anita Desai', 'General Surgery', 'MBBS, MS (Surgery)', 1],
+    [6, 'Dr. Hemant Goel', 'Pediatrics', 'MBBS, MD (Pediatrics)', 1],
+    [6, 'Dr. Pooja Kulkarni', 'Critical Care', 'MBBS, DA, DNB (Critical Care)', 1],
+    // Apex Hospital (id: 7)
+    [7, 'Dr. Sandeep Yadav', 'Neurosurgery', 'MBBS, MS, MCh (Neurosurgery)', 1],
+    [7, 'Dr. Meena Agarwal', 'Oncology', 'MBBS, MD (Onco)', 1],
+    // Mahatma Gandhi Hospital (id: 8)
+    [8, 'Dr. Devendra Rathore', 'Emergency Medicine', 'MBBS, MD (Emergency)', 1],
+    [8, 'Dr. Swati Sen', 'Nephrology', 'MBBS, MD, DNB', 1],
   ];
 
-  for (const doc of doctorsData) {
-    insertDoctor.run(...doc);
+  for (const d of doctorsData) {
+    insertDoctor.run(...d);
   }
 
-  // 3. Resources (BED, ICU, VENTILATOR) for each hospital
+  // 3. Insert Resources (BED, ICU, VENTILATOR) for each hospital
   const insertResource = db.prepare(`
     INSERT INTO resources (hospital_id, type, total, available)
     VALUES (?, ?, ?, ?)
   `);
 
   const resourcesData = [
-    // AIIMS (id: 1)
-    [1, 'BED', 150, 24],
-    [1, 'ICU', 30, 4],
-    [1, 'VENTILATOR', 20, 3],
-    // Safdarjung (id: 2)
-    [2, 'BED', 120, 18],
-    [2, 'ICU', 25, 2],
-    [2, 'VENTILATOR', 15, 1],
-    // Max Saket (id: 3)
-    [3, 'BED', 100, 32],
-    [3, 'ICU', 20, 6],
-    [3, 'VENTILATOR', 12, 5],
-    // Fortis Gurugram (id: 4)
-    [4, 'BED', 85, 21],
-    [4, 'ICU', 18, 5],
-    [4, 'VENTILATOR', 10, 3],
-    // Apollo Sarita Vihar (id: 5)
-    [5, 'BED', 110, 28],
-    [5, 'ICU', 22, 7],
-    [5, 'VENTILATOR', 14, 4],
-    // Medanta Gurugram (id: 6)
-    [6, 'BED', 140, 45],
-    [6, 'ICU', 35, 11],
-    [6, 'VENTILATOR', 25, 8],
-    // Ganga Ram (id: 7)
-    [7, 'BED', 95, 16],
-    [7, 'ICU', 16, 3],
-    [7, 'VENTILATOR', 10, 2],
-    // Jaypee Noida (id: 8)
-    [8, 'BED', 75, 26],
-    [8, 'ICU', 15, 5],
-    [8, 'VENTILATOR', 8, 4],
+    // SMS Hospital: High capacity public hospital
+    [1, 'BED', 120, 24],
+    [1, 'ICU', 25, 4],
+    [1, 'VENTILATOR', 12, 3],
+    // Fortis Escorts Jaipur: Tertiary cardiac
+    [2, 'BED', 60, 18],
+    [2, 'ICU', 15, 4],
+    [2, 'VENTILATOR', 8, 2],
+    // EHCC: Heart care
+    [3, 'BED', 50, 12],
+    [3, 'ICU', 12, 2],
+    [3, 'VENTILATOR', 6, 1],
+    // Manipal Jaipur
+    [4, 'BED', 70, 22],
+    [4, 'ICU', 16, 5],
+    [4, 'VENTILATOR', 8, 3],
+    // Narayana Jaipur
+    [5, 'BED', 65, 19],
+    [5, 'ICU', 14, 3],
+    [5, 'VENTILATOR', 7, 2],
+    // SDMH: Trust hospital
+    [6, 'BED', 55, 15],
+    [6, 'ICU', 10, 2],
+    [6, 'VENTILATOR', 5, 1],
+    // Apex Hospital: Malviya Nagar
+    [7, 'BED', 45, 11],
+    [7, 'ICU', 10, 2],
+    [7, 'VENTILATOR', 4, 1],
+    // Mahatma Gandhi Hospital: Sitapura
+    [8, 'BED', 90, 28],
+    [8, 'ICU', 25, 6],
+    [8, 'VENTILATOR', 12, 4],
   ];
 
-  for (const res of resourcesData) {
-    insertResource.run(...res);
+  for (const r of resourcesData) {
+    insertResource.run(...r);
   }
 
-  // 4. Waiting Times (2 to 3 departments each)
+  // 4. Insert baseline waiting times (Emergency and department specific)
   const insertWT = db.prepare(`
     INSERT INTO waiting_times (hospital_id, department, minutes)
     VALUES (?, ?, ?)
   `);
 
   const wtData = [
-    [1, 'Emergency', 40],
-    [1, 'Trauma', 25],
-    [1, 'Cardiology', 55],
-    [2, 'Emergency', 35],
-    [2, 'Orthopedics', 45],
-    [3, 'Emergency', 20],
-    [3, 'Cardiology', 35],
-    [3, 'Oncology', 30],
-    [4, 'Emergency', 15],
-    [4, 'Neurology', 25],
+    [1, 'Emergency', 25],
+    [1, 'Cardiology', 40],
+    [1, 'Trauma', 15],
+    [2, 'Emergency', 20],
+    [2, 'Cardiology', 30],
+    [3, 'Emergency', 15],
+    [3, 'Cardiology', 25],
+    [4, 'Emergency', 20],
+    [4, 'Gastroenterology', 35],
     [5, 'Emergency', 25],
-    [5, 'Critical Care', 30],
+    [5, 'Nephrology', 30],
     [6, 'Emergency', 20],
-    [6, 'Cardiology', 30],
-    [7, 'Emergency', 30],
-    [7, 'Nephrology', 40],
-    [8, 'Emergency', 15],
-    [8, 'Pediatrics', 20],
+    [6, 'Pediatrics', 25],
+    [7, 'Emergency', 25],
+    [7, 'Oncology', 35],
+    [8, 'Emergency', 30],
+    [8, 'General Medicine', 40],
   ];
 
   for (const wt of wtData) {
     insertWT.run(...wt);
   }
 
-  // 5. 3 Blood Banks with full 8-group inventory (some deliberately low < 5)
+  // 5. 3 Blood Banks in Jaipur with realistic, varied stock distributions
+  // Varied stock guarantees that different blood groups return distinct listing counts
   const insertBB = db.prepare(`
     INSERT INTO blood_banks (name, address, latitude, longitude, phone)
     VALUES (?, ?, ?, ?, ?)
   `);
 
-  insertBB.run('Delhi Red Cross Blood Bank', '1 Red Cross Road, Connaught Place, New Delhi', 28.6212, 77.2115, '+91-11-23716441');
-  insertBB.run('Rotary Blood Bank', '56 Tughlakabad Institutional Area, New Delhi', 28.5126, 77.2743, '+91-11-29955531');
-  insertBB.run('Lions Blood Bank', 'Block CP-2, Shalimar Bagh, New Delhi', 28.7153, 77.1623, '+91-11-42258494');
+  insertBB.run('SMS Hospital Central Blood Bank', 'JLN Marg, Ashok Nagar, Jaipur', 26.8950, 75.8150, '+91-141-2560291');
+  insertBB.run('Swasthya Kalyan Blood Centre', '10 Hospital Road, C-Scheme, Jaipur', 26.9142, 75.8021, '+91-141-2372332');
+  insertBB.run('Rotary Blood Bank Jaipur', 'Near Nehru Garden, Tonk Road, Gandhinagar, Jaipur', 26.8831, 75.8019, '+91-141-2706030');
 
   const insertUnit = db.prepare(`
     INSERT INTO blood_units (bloodbank_id, blood_group, quantity, available)
     VALUES (?, ?, ?, ?)
   `);
 
-  const groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  // Specific varied stock across the 3 banks
   const bankInventory = [
-    // Bank 1: Red Cross (Connaught Place)
-    { 1: { 'A+': [35, 12], 'A-': [15, 3], 'B+': [40, 18], 'B-': [12, 2], 'AB+': [20, 7], 'AB-': [8, 1], 'O+': [50, 22], 'O-': [15, 4] } },
-    // Bank 2: Rotary (Tughlakabad)
-    { 2: { 'A+': [25, 8], 'A-': [10, 2], 'B+': [30, 14], 'B-': [8, 1], 'AB+': [15, 4], 'AB-': [6, 1], 'O+': [35, 15], 'O-': [12, 3] } },
-    // Bank 3: Lions (Shalimar Bagh)
-    { 3: { 'A+': [20, 6], 'A-': [8, 2], 'B+': [25, 9], 'B-': [6, 2], 'AB+': [10, 3], 'AB-': [5, 1], 'O+': [30, 11], 'O-': [10, 2] } },
+    // Bank 1: SMS Blood Bank (Ashok Nagar) - Stocks 7 groups (No AB-)
+    {
+      bankId: 1,
+      units: [
+        ['A+', 35, 12],
+        ['A-', 15, 3],
+        ['B+', 40, 18],
+        ['B-', 12, 2],
+        ['O+', 50, 22],
+        ['O-', 15, 4],
+        ['AB+', 20, 5],
+      ],
+    },
+    // Bank 2: Swasthya Kalyan (C-Scheme) - Stocks 5 groups (No A-, No O-)
+    {
+      bankId: 2,
+      units: [
+        ['A+', 25, 8],
+        ['B+', 30, 14],
+        ['AB+', 15, 4],
+        ['AB-', 6, 2],
+        ['O+', 35, 15],
+      ],
+    },
+    // Bank 3: Rotary Blood Bank (Tonk Road) - Stocks 5 groups (No A+, No A-, No AB-)
+    {
+      bankId: 3,
+      units: [
+        ['B+', 25, 9],
+        ['B-', 8, 2],
+        ['AB+', 10, 3],
+        ['O+', 30, 11],
+        ['O-', 10, 2],
+      ],
+    },
   ];
 
-  for (const bObj of bankInventory) {
-    const bankId = Object.keys(bObj)[0];
-    const inv = bObj[bankId];
-    for (const grp of groups) {
-      const [qty, avail] = inv[grp] || [10, 5];
-      insertUnit.run(Number(bankId), grp, qty, avail);
+  for (const b of bankInventory) {
+    for (const [grp, qty, avail] of b.units) {
+      insertUnit.run(b.bankId, grp, qty, avail);
     }
   }
 
-  // 6. 5 Ambulances spread across Delhi NCR with driver details
+  // 6. 5 Ambulances in Jaipur with Rajasthan registrations and driver details
   const insertAmb = db.prepare(`
     INSERT INTO ambulances (vehicle_no, driver_name, driver_phone, status, latitude, longitude)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  insertAmb.run('DL-01-AX-1001', 'Rajesh Kumar', '+91-9811100001', 'AVAILABLE', 28.5670, 77.2110);
-  insertAmb.run('DL-02-BY-2002', 'Vikram Singh', '+91-9811100002', 'ON_TRIP', 28.5300, 77.2150);
-  insertAmb.run('HR-26-CZ-3003', 'Amit Sharma', '+91-9811100003', 'AVAILABLE', 28.4600, 77.0700);
-  insertAmb.run('UP-16-DK-4004', 'Sunita Rao', '+91-9811100004', 'AVAILABLE', 28.5150, 77.3700);
-  insertAmb.run('DL-03-EL-5005', 'Manoj Verma', '+91-9811100005', 'OFFLINE', 28.6400, 77.1900);
+  insertAmb.run('RJ-14-AX-1001', 'Rajesh Sharma', '+91-9829000001', 'AVAILABLE', 26.8980, 75.8120);
+  insertAmb.run('RJ-14-BY-2002', 'Vikram Meena', '+91-9829000002', 'ON_TRIP', 26.8510, 75.8080);
+  insertAmb.run('RJ-14-CZ-3003', 'Amit Choudhary', '+91-9829000003', 'AVAILABLE', 26.9200, 75.7900);
+  insertAmb.run('RJ-14-DK-4004', 'Sunita Gurjar', '+91-9829000004', 'AVAILABLE', 26.9650, 75.7720);
+  insertAmb.run('RJ-14-EL-5005', 'Manoj Saini', '+91-9829000005', 'OFFLINE', 26.8100, 75.8200);
 
   // Initial location history for ambulance 1 and 2
   const insertLoc = db.prepare('INSERT INTO ambulance_locations (ambulance_id, latitude, longitude) VALUES (?, ?, ?)');
-  insertLoc.run(1, 28.5650, 77.2090);
-  insertLoc.run(1, 28.5670, 77.2110);
-  insertLoc.run(2, 28.5350, 77.2200);
-  insertLoc.run(2, 28.5300, 77.2150);
+  insertLoc.run(1, 26.8960, 75.8100);
+  insertLoc.run(1, 26.8980, 75.8120);
+  insertLoc.run(2, 26.8530, 75.8050);
+  insertLoc.run(2, 26.8510, 75.8080);
 
-  // 7. Demo Users for all 5 roles (password: password123)
+  // 7. Demo Users (password: password123)
   const insertUser = db.prepare(`
-    INSERT INTO users (name, email, password_hash, phone, role, hospital_id, ambulance_id, bloodbank_id, active)
-    VALUES (@name, @email, @password_hash, @phone, @role, @hospital_id, @ambulance_id, @bloodbank_id, 1)
+    INSERT INTO users (name, email, password_hash, phone, role, staff_role, hospital_id, ambulance_id, bloodbank_id, active)
+    VALUES (@name, @email, @password_hash, @phone, @role, @staff_role, @hospital_id, @ambulance_id, @bloodbank_id, 1)
   `);
 
   const pwHash = bcrypt.hashSync('password123', 10);
@@ -323,8 +347,9 @@ function seedDatabase() {
       name: 'System Administrator',
       email: 'admin@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999900000',
+      phone: '+91-9829900000',
       role: 'ADMIN',
+      staff_role: 'ADMIN',
       hospital_id: null,
       ambulance_id: null,
       bloodbank_id: null,
@@ -333,49 +358,65 @@ function seedDatabase() {
       name: 'Riya Sharma',
       email: 'patient@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999911111',
+      phone: '+91-9829911111',
       role: 'PATIENT',
+      staff_role: 'CLINICAL',
       hospital_id: null,
       ambulance_id: null,
       bloodbank_id: null,
     },
     {
-      name: 'Dr. Arjun (AIIMS Staff)',
+      name: 'Dr. Arjun (SMS Clinical Staff)',
       email: 'hospital@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999922222',
+      phone: '+91-9829922222',
       role: 'HOSPITAL',
-      hospital_id: 1, // AIIMS
+      staff_role: 'CLINICAL',
+      hospital_id: 1, // SMS Hospital
       ambulance_id: null,
       bloodbank_id: null,
     },
     {
-      name: 'Rajesh (Ambulance Lead)',
+      name: 'Sunita Sharma (SMS Resource Manager)',
+      email: 'manager@medilink.com',
+      password_hash: pwHash,
+      phone: '+91-9829922223',
+      role: 'HOSPITAL',
+      staff_role: 'RESOURCE_MANAGER',
+      hospital_id: 1, // SMS Hospital
+      ambulance_id: null,
+      bloodbank_id: null,
+    },
+    {
+      name: 'Rajesh Sharma (RJ-14 Operator)',
       email: 'ambulance@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999933333',
+      phone: '+91-9829933333',
       role: 'AMBULANCE',
+      staff_role: 'CLINICAL',
       hospital_id: null,
-      ambulance_id: 1, // DL-01-AX-1001
+      ambulance_id: 1, // RJ-14-AX-1001
       bloodbank_id: null,
     },
     {
-      name: 'Suresh (Red Cross Staff)',
+      name: 'Suresh (SMS Blood Bank Staff)',
       email: 'bloodbank@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999944444',
+      phone: '+91-9829944444',
       role: 'BLOODBANK',
+      staff_role: 'CLINICAL',
       hospital_id: null,
       ambulance_id: null,
-      bloodbank_id: 1, // Delhi Red Cross
+      bloodbank_id: 1, // SMS Blood Bank
     },
     // Second patient for rich queue views
     {
-      name: 'Karan Patel',
+      name: 'Rahul Verma',
       email: 'patient2@medilink.com',
       password_hash: pwHash,
-      phone: '+91-9999955555',
+      phone: '+91-9829955555',
       role: 'PATIENT',
+      staff_role: 'CLINICAL',
       hospital_id: null,
       ambulance_id: null,
       bloodbank_id: null,
@@ -386,41 +427,47 @@ function seedDatabase() {
     insertUser.run(u);
   }
 
-  // Link ambulance 1 to operator user (user_id: 4)
-  db.prepare('UPDATE ambulances SET operator_user_id = 4 WHERE ambulance_id = 1').run();
+  // Link ambulance 1 to operator user (user_id of ambulance operator)
+  const ambOperator = db.prepare("SELECT user_id FROM users WHERE email = 'ambulance@medilink.com'").get();
+  if (ambOperator) {
+    db.prepare('UPDATE ambulances SET operator_user_id = ? WHERE ambulance_id = 1').run(ambOperator.user_id);
+  }
 
   // 8. Sample admissions in various statuses so Hospital and Patient dashboards look alive
+  const patient1 = db.prepare("SELECT user_id FROM users WHERE email = 'patient@medilink.com'").get()?.user_id || 2;
+  const patient2 = db.prepare("SELECT user_id FROM users WHERE email = 'patient2@medilink.com'").get()?.user_id || 7;
+
   const insertAdmission = db.prepare(`
     INSERT INTO admissions (patient_id, hospital_id, reason, severity, preferred_department, status)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  insertAdmission.run(2, 1, 'Acute chest pain and severe shortness of breath', 'CRITICAL', 'Emergency', 'PENDING');
-  insertAdmission.run(6, 1, 'Compound fracture of left tibia following road accident', 'MEDIUM', 'Trauma', 'ACCEPTED');
-  insertAdmission.run(2, 2, 'High fever with suspected dengue infection', 'LOW', 'Emergency', 'COMPLETED');
+  insertAdmission.run(patient1, 1, 'Acute chest pain and severe shortness of breath', 'CRITICAL', 'Emergency', 'PENDING');
+  insertAdmission.run(patient2, 1, 'Fracture of left wrist following fall at home', 'MEDIUM', 'Trauma', 'ACCEPTED');
+  insertAdmission.run(patient1, 2, 'High fever with seasonal viral infection', 'LOW', 'Emergency', 'COMPLETED');
 
-  // 9. Sample ambulance requests
+  // 9. Sample ambulance requests in Jaipur
   const insertAmbReq = db.prepare(`
     INSERT INTO ambulance_requests (patient_id, ambulance_id, pickup_location, pickup_lat, pickup_lng, drop_location, drop_hospital_id, status)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  insertAmbReq.run(2, 1, 'Near Hauz Khas Metro Station, New Delhi', 28.5430, 77.2060, 'AIIMS Emergency Wing', 1, 'ACCEPTED');
-  insertAmbReq.run(6, 2, 'South Extension Part II, New Delhi', 28.5680, 77.2220, 'Safdarjung Trauma Centre', 2, 'EN_ROUTE');
-  insertAmbReq.run(2, 3, 'Connaught Place Outer Circle, New Delhi', 28.6310, 77.2180, 'Sir Ganga Ram Hospital', 7, 'COMPLETED');
+  insertAmbReq.run(patient1, 1, 'Near Albert Hall Museum, Ram Niwas Garden, Jaipur', 26.9115, 75.8190, 'SMS Hospital Emergency Ward', 1, 'ACCEPTED');
+  insertAmbReq.run(patient2, 2, 'Gaurav Tower, Malviya Nagar, Jaipur', 26.8530, 75.8050, 'Fortis Escorts Emergency', 2, 'EN_ROUTE');
+  insertAmbReq.run(patient1, 3, 'Panch Batti, M.I. Road, Jaipur', 26.9170, 75.8110, 'Santokba Durlabhji Hospital', 6, 'COMPLETED');
 
-  // 10. Sample blood reservations
+  // 10. Sample blood reservations in Jaipur
   const insertRes = db.prepare(`
     INSERT INTO reservations (patient_id, unit_id, units_requested, status)
     VALUES (?, ?, ?, ?)
   `);
 
-  insertRes.run(2, 1, 2, 'PENDING'); // Bank 1, A+
-  insertRes.run(6, 7, 1, 'APPROVED'); // Bank 1, O+
-  insertRes.run(2, 3, 1, 'FULFILLED'); // Bank 1, B+
+  insertRes.run(patient1, 1, 2, 'PENDING'); // Bank 1, A+
+  insertRes.run(patient2, 5, 1, 'APPROVED'); // Bank 1, O+
+  insertRes.run(patient1, 3, 1, 'FULFILLED'); // Bank 1, B+
 
   console.log('Seed completed successfully. Demo accounts:');
-  demoUsers.forEach(u => console.log(`  ${u.role.padEnd(10)} -> ${u.email} (password: password123)`));
+  demoUsers.forEach(u => console.log(`  ${u.role.padEnd(10)} [${u.staff_role.padEnd(16)}] -> ${u.email} (password: password123)`));
 }
 
 if (require.main === module) {

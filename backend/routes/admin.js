@@ -12,7 +12,7 @@ router.use(authRequired, requireRole('ADMIN'));
 // List all users
 router.get('/users', (req, res) => {
   const users = db.prepare(`
-    SELECT user_id, name, email, phone, role, hospital_id, ambulance_id, bloodbank_id, active, created_at
+    SELECT user_id, name, email, phone, role, staff_role, hospital_id, ambulance_id, bloodbank_id, active, created_at
     FROM users
     ORDER BY created_at DESC
   `).all();
@@ -21,7 +21,7 @@ router.get('/users', (req, res) => {
 
 // Admin creates staff or user accounts with linked entities
 router.post('/users', (req, res) => {
-  const { name, email, password, phone, role, hospital_id, ambulance_id, bloodbank_id } = req.body;
+  const { name, email, password, phone, role, staff_role, hospital_id, ambulance_id, bloodbank_id } = req.body;
 
   if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required' });
 
@@ -35,6 +35,15 @@ router.post('/users', (req, res) => {
   const allowedRoles = ['PATIENT', 'HOSPITAL', 'AMBULANCE', 'BLOODBANK', 'ADMIN'];
   if (!role || !allowedRoles.includes(role)) {
     return res.status(400).json({ error: `Invalid role. Allowed: ${allowedRoles.join(', ')}` });
+  }
+
+  let finalStaffRole = 'CLINICAL';
+  if (role === 'HOSPITAL') {
+    if (staff_role && ['CLINICAL', 'RESOURCE_MANAGER'].includes(staff_role)) {
+      finalStaffRole = staff_role;
+    } else if (staff_role) {
+      return res.status(400).json({ error: "Invalid staff_role for HOSPITAL. Allowed: 'CLINICAL', 'RESOURCE_MANAGER'" });
+    }
   }
 
   const cleanPhone = phone ? String(phone).trim() : null;
@@ -71,9 +80,9 @@ router.post('/users', (req, res) => {
 
   const password_hash = bcrypt.hashSync(password, 10);
   const info = db.prepare(`
-    INSERT INTO users (name, email, password_hash, phone, role, hospital_id, ambulance_id, bloodbank_id, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-  `).run(name.trim(), cleanEmail, password_hash, cleanPhone, role, finalHospitalId, finalAmbulanceId, finalBloodbankId);
+    INSERT INTO users (name, email, password_hash, phone, role, staff_role, hospital_id, ambulance_id, bloodbank_id, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `).run(name.trim(), cleanEmail, password_hash, cleanPhone, role, finalStaffRole, finalHospitalId, finalAmbulanceId, finalBloodbankId);
 
   const newUserId = info.lastInsertRowid;
 
@@ -82,11 +91,11 @@ router.post('/users', (req, res) => {
     action: 'CREATE_STAFF_USER',
     entity: 'users',
     entity_id: newUserId,
-    details: { role, email: cleanEmail },
+    details: { role, staff_role: finalStaffRole, email: cleanEmail },
   });
 
   const createdUser = db.prepare(`
-    SELECT user_id, name, email, phone, role, hospital_id, ambulance_id, bloodbank_id, active, created_at
+    SELECT user_id, name, email, phone, role, staff_role, hospital_id, ambulance_id, bloodbank_id, active, created_at
     FROM users WHERE user_id = ?
   `).get(newUserId);
 

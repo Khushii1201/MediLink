@@ -61,6 +61,7 @@ router.post('/register', (req, res) => {
       email: trimmedEmail,
       phone: cleanPhone,
       role,
+      staff_role: 'CLINICAL',
       hospital_id: null,
       ambulance_id: null,
       bloodbank_id: null,
@@ -91,6 +92,7 @@ router.post('/login', (req, res) => {
     {
       user_id: user.user_id,
       role: user.role,
+      staff_role: user.staff_role || 'CLINICAL',
       name: user.name,
       email: user.email,
       hospital_id: user.hospital_id,
@@ -109,6 +111,7 @@ router.post('/login', (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      staff_role: user.staff_role || 'CLINICAL',
       hospital_id: user.hospital_id,
       ambulance_id: user.ambulance_id,
       bloodbank_id: user.bloodbank_id,

@@ -13,6 +13,7 @@ const { calculateEstimatedWait } = require('../services/waitingEstimate');
 let adminToken;
 let patientToken;
 let hospitalToken;
+let managerToken;
 let ambulanceToken;
 let bloodbankToken;
 
@@ -27,6 +28,7 @@ before(async () => {
   adminToken = await login('admin@medilink.com', 'password123');
   patientToken = await login('patient@medilink.com', 'password123');
   hospitalToken = await login('hospital@medilink.com', 'password123');
+  managerToken = await login('manager@medilink.com', 'password123');
   ambulanceToken = await login('ambulance@medilink.com', 'password123');
   bloodbankToken = await login('bloodbank@medilink.com', 'password123');
 });
@@ -326,15 +328,15 @@ describe('3. Blood Bank Inventory & Reservations', () => {
 
 describe('4. Ambulance Dispatch & Tracking', () => {
   test('ambulance: nearest available ambulance is chosen; queued when none available; reject reassigns; complete frees ambulance; location update writes history; tracking endpoint restricted', async () => {
-    // 1. Request ambulance near AIIMS (pickup coords ~ 28.5670, 77.2100)
-    // Ambulance 1 is at 28.5670, 77.2110 (AVAILABLE)
+    // 1. Request ambulance near SMS Hospital, Jaipur (pickup coords ~ 26.8920, 75.8250)
+    // Ambulance 1 is at 26.8988, 75.8164 (AVAILABLE)
     const reqRes = await request(app)
       .post('/api/ambulances/requests')
       .set('Authorization', `Bearer ${patientToken}`)
       .send({
-        pickup_location: 'Green Park Market, New Delhi',
-        pickup_lat: 28.5600,
-        pickup_lng: 77.2050,
+        pickup_location: 'Raja Park, Jaipur',
+        pickup_lat: 26.8920,
+        pickup_lng: 75.8250,
       });
     assert.equal(reqRes.status, 201);
     assert.equal(reqRes.body.status, 'ACCEPTED');
@@ -349,7 +351,7 @@ describe('4. Ambulance Dispatch & Tracking', () => {
     const locRes = await request(app)
       .put('/api/ambulances/1/location')
       .set('Authorization', `Bearer ${ambulanceToken}`)
-      .send({ latitude: 28.5610, longitude: 77.2060 });
+      .send({ latitude: 26.8995, longitude: 75.8170 });
     assert.equal(locRes.status, 200);
 
     const historyCount = db.prepare('SELECT COUNT(*) AS c FROM ambulance_locations WHERE ambulance_id = 1').get().c;
@@ -465,18 +467,83 @@ describe('6. Admin & Input Validation', () => {
       .send({ name: 'Bad Coords Hospital', latitude: 95.0, longitude: 200.0 });
     assert.equal(badCoords.status, 400);
 
-    // Negative resource count
+    // Negative resource count (executed by manager)
     const negResource = await request(app)
       .put('/api/hospitals/1/resources/1')
-      .set('Authorization', `Bearer ${hospitalToken}`)
+      .set('Authorization', `Bearer ${managerToken}`)
       .send({ available: -5 });
     assert.equal(negResource.status, 400);
 
-    // available > total
+    // available > total (executed by manager)
     const overflowResource = await request(app)
       .put('/api/hospitals/1/resources/1')
-      .set('Authorization', `Bearer ${hospitalToken}`)
+      .set('Authorization', `Bearer ${managerToken}`)
       .send({ total: 10, available: 50 });
     assert.equal(overflowResource.status, 400);
   });
 });
+
+describe('7. Hospital Staff Permissions, Occupancy Invariants & Geographic Range Controls', () => {
+  test('clinical doctor is prohibited from mutating resources (403), while resource manager succeeds (200)', async () => {
+    // 1. Doctor (CLINICAL) attempting to modify capacity -> 403 Forbidden
+    const doctorMutation = await request(app)
+      .put('/api/hospitals/1/resources/1')
+      .set('Authorization', `Bearer ${hospitalToken}`)
+      .send({ total: 200, available: 100 });
+    assert.equal(doctorMutation.status, 403);
+    assert.match(doctorMutation.body.error, /Doctors and clinical staff are not authorized/i);
+
+    // 2. Resource Manager attempting to modify capacity -> 200 OK
+    const managerMutation = await request(app)
+      .put('/api/hospitals/1/resources/1')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ total: 150, available: 50 });
+    assert.equal(managerMutation.status, 200);
+    assert.equal(managerMutation.body.total, 150);
+    assert.equal(managerMutation.body.available, 50);
+  });
+
+  test('hospital total capacity cannot be reduced below currently occupied beds (409 Conflict)', async () => {
+    // Resource 1 total is 150, available is 50 -> 100 beds currently occupied
+    // Attempting to reduce total to 80 (less than 100 occupied)
+    const conflictRes = await request(app)
+      .put('/api/hospitals/1/resources/1')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .send({ total: 80 });
+    assert.equal(conflictRes.status, 409);
+    assert.match(conflictRes.body.error, /occupied/i);
+  });
+
+  test('ambulance request outside 50 km maximum radius is safely queued with out-of-range notification', async () => {
+    // Patient requests an ambulance in New Delhi (~240 km from Jaipur vehicles)
+    const outOfRangeRes = await request(app)
+      .post('/api/ambulances/requests')
+      .set('Authorization', `Bearer ${patientToken}`)
+      .send({
+        pickup_location: 'Connaught Place, New Delhi',
+        pickup_lat: 28.6304,
+        pickup_lng: 77.2177,
+      });
+    assert.equal(outOfRangeRes.status, 201);
+    assert.equal(outOfRangeRes.body.status, 'REQUESTED');
+    assert.equal(outOfRangeRes.body.ambulance_id, null);
+    assert.match(outOfRangeRes.body.assignment_message, /50 km/i);
+  });
+
+  test('blood bank inventory endpoint filters by blood group accurately with matching counts', async () => {
+    // Querying for A+ blood group in Jaipur
+    const aPosRes = await request(app).get('/api/bloodbank/units?blood_group=A%2B');
+    assert.equal(aPosRes.status, 200);
+    assert.ok(Array.isArray(aPosRes.body));
+    // Every returned unit must be A+
+    aPosRes.body.forEach(unit => {
+      assert.equal(unit.blood_group, 'A+');
+    });
+
+    // All groups query
+    const allRes = await request(app).get('/api/bloodbank/units');
+    assert.equal(allRes.status, 200);
+    assert.ok(allRes.body.length > aPosRes.body.length);
+  });
+});
+

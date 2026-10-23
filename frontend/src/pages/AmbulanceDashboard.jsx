@@ -243,7 +243,7 @@ export default function AmbulanceDashboard() {
     }
   }
 
-  const mapCenter = mapMarkers[0] ? [mapMarkers[0].lat, mapMarkers[0].lng] : [28.6139, 77.2090];
+  const mapCenter = mapMarkers[0] ? [mapMarkers[0].lat, mapMarkers[0].lng] : [26.9124, 75.7873];
 
   return (
     <div className="page ambulance-dashboard-page">

@@ -44,9 +44,9 @@ export default function AdminDashboard() {
   const [hospitalForm, setHospitalForm] = useState({
     name: '',
     address: '',
-    city: 'New Delhi',
-    latitude: '28.6139',
-    longitude: '77.2090',
+    city: 'Jaipur',
+    latitude: '26.9124',
+    longitude: '75.7873',
     phone: '',
     email: '',
     description: '',
@@ -58,17 +58,17 @@ export default function AdminDashboard() {
     vehicle_no: '',
     driver_name: '',
     driver_phone: '',
-    latitude: '28.6139',
-    longitude: '77.2090',
+    latitude: '26.9124',
+    longitude: '75.7873',
   });
 
   const [showBankModal, setShowBankModal] = useState(false);
   const [bankForm, setBankForm] = useState({
     name: '',
     address: '',
-    city: 'New Delhi',
-    latitude: '28.6139',
-    longitude: '77.2090',
+    city: 'Jaipur',
+    latitude: '26.9124',
+    longitude: '75.7873',
     phone: '',
   });
 
@@ -262,8 +262,8 @@ export default function AdminDashboard() {
         vehicle_no: '',
         driver_name: '',
         driver_phone: '',
-        latitude: '28.6139',
-        longitude: '77.2090',
+        latitude: '26.9124',
+        longitude: '75.7873',
       });
       loadData();
     } catch (err) {
@@ -302,9 +302,9 @@ export default function AdminDashboard() {
       setBankForm({
         name: '',
         address: '',
-        city: 'New Delhi',
-        latitude: '28.6139',
-        longitude: '77.2090',
+        city: 'Jaipur',
+        latitude: '26.9124',
+        longitude: '75.7873',
         phone: '',
       });
       loadData();
@@ -631,9 +631,9 @@ export default function AdminDashboard() {
                 setHospitalForm({
                   name: '',
                   address: '',
-                  city: 'New Delhi',
-                  latitude: '28.6139',
-                  longitude: '77.2090',
+                  city: 'Jaipur',
+                  latitude: '26.9124',
+                  longitude: '75.7873',
                   phone: '',
                   email: '',
                   description: '',

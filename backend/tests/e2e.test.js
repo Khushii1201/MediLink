@@ -39,9 +39,9 @@ describe('End-to-End Emergency Healthcare Coordination Workflow', () => {
     const patientToken = regRes.body.token;
     const patientId = regRes.body.user.user_id;
 
-    // 2. Patient queries hospital recommendations near South Extension (28.5700, 77.2200) for ICU care
+    // 2. Patient queries hospital recommendations near C-Scheme / Ashok Nagar Jaipur for Cardiology care
     const recRes = await request(app)
-      .get('/api/recommendations?lat=28.5700&lng=28.2200&need=ICU&specialty=Cardiology')
+      .get('/api/recommendations?lat=26.8950&lng=75.8150&need=ICU&specialty=Cardiology')
       .set('Authorization', `Bearer ${patientToken}`);
     assert.equal(recRes.status, 200);
     assert.ok(Array.isArray(recRes.body.recommendations));
@@ -52,7 +52,7 @@ describe('End-to-End Emergency Healthcare Coordination Workflow', () => {
     assert.ok(topHospital.why_recommended, 'Must provide explainable "why_recommended" rationale');
     assert.ok(topHospital.breakdown, 'Must provide factor breakdown');
 
-    // 3. Patient requests Emergency Admission at AIIMS (hospital 1)
+    // 3. Patient requests Emergency Admission at SMS Hospital (hospital 1)
     const initialBed = db.prepare("SELECT available FROM resources WHERE hospital_id = 1 AND type = 'BED'").get().available;
 
     const admRes = await request(app)
@@ -88,15 +88,15 @@ describe('End-to-End Emergency Healthcare Coordination Workflow', () => {
     const postAcceptBed = db.prepare("SELECT available FROM resources WHERE hospital_id = 1 AND type = 'BED'").get().available;
     assert.equal(postAcceptBed, initialBed - 1, 'Hospital bed count must decrement by exactly 1');
 
-    // 6. Patient dispatches nearest emergency ambulance to pickup location
+    // 6. Patient dispatches nearest emergency ambulance to pickup location in Jaipur
     const ambReqRes = await request(app)
       .post('/api/ambulances/requests')
       .set('Authorization', `Bearer ${patientToken}`)
       .send({
-        pickup_location: 'South Extension Part II, Ring Road, New Delhi',
-        pickup_lat: 28.5680,
-        pickup_lng: 77.2210,
-        drop_location: 'AIIMS Emergency Department, Ansari Nagar',
+        pickup_location: 'Albert Hall Museum, Ram Niwas Garden, Jaipur',
+        pickup_lat: 26.9115,
+        pickup_lng: 75.8190,
+        drop_location: 'SMS Hospital Emergency Ward, Jawahar Lal Nehru Marg',
         drop_hospital_id: 1,
       });
     assert.equal(ambReqRes.status, 201);
@@ -109,7 +109,7 @@ describe('End-to-End Emergency Healthcare Coordination Workflow', () => {
     const locUpdateRes = await request(app)
       .put(`/api/ambulances/${assignedAmbulanceId}/location`)
       .set('Authorization', `Bearer ${ambulanceToken}`)
-      .send({ latitude: 28.5675, longitude: 77.2150 });
+      .send({ latitude: 26.9050, longitude: 75.8170 });
     assert.equal(locUpdateRes.status, 200);
 
     // 8. Patient tracks vehicle: checks live coordinates and estimated transit time
