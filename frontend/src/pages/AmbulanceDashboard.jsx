@@ -316,7 +316,7 @@ export default function AmbulanceDashboard() {
                   type="text"
                   id="amb-lat"
                   className="form-input"
-                  placeholder="28.5670"
+                  placeholder="26.8988"
                   value={manualLat}
                   onChange={(e) => setManualLat(e.target.value)}
                   required
@@ -328,7 +328,7 @@ export default function AmbulanceDashboard() {
                   type="text"
                   id="amb-lng"
                   className="form-input"
-                  placeholder="77.2110"
+                  placeholder="75.8164"
                   value={manualLng}
                   onChange={(e) => setManualLng(e.target.value)}
                   required

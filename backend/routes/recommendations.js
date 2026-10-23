@@ -21,9 +21,11 @@ router.get('/', authRequired, requireRole('PATIENT'), (req, res) => {
   const targetNeed = validNeeds.includes(String(need).toUpperCase()) ? String(need).toUpperCase() : 'GENERAL';
   const resourceType = targetNeed === 'ICU' ? 'ICU' : (targetNeed === 'VENTILATOR' ? 'VENTILATOR' : 'BED');
 
+  const DEFAULT_JAIPUR_LAT = 26.9124;
+  const DEFAULT_JAIPUR_LNG = 75.7873;
   const hasCoords = lat !== undefined && lng !== undefined && isValidCoordinate(lat, lng);
-  const userLat = hasCoords ? Number(lat) : null;
-  const userLng = hasCoords ? Number(lng) : null;
+  const userLat = hasCoords ? Number(lat) : DEFAULT_JAIPUR_LAT;
+  const userLng = hasCoords ? Number(lng) : DEFAULT_JAIPUR_LNG;
 
   const hasSpecialty = Boolean(specialty && String(specialty).trim());
   const specialtyNeedle = hasSpecialty ? String(specialty).trim().toLowerCase() : null;
@@ -70,7 +72,7 @@ router.get('/', authRequired, requireRole('PATIENT'), (req, res) => {
     const waitScore = Math.max(0, Math.min(1, 1 - avgWaitMinutes / 120));
 
     // 3. Distance score (0 to 1, max 25km range, default 0.5 neutral)
-    const dist = hasCoords ? distanceKm(userLat, userLng, h.latitude, h.longitude) : null;
+    const dist = distanceKm(userLat, userLng, h.latitude, h.longitude);
     const distScore = dist !== null ? Math.max(0, Math.min(1, 1 - dist / 25)) : 0.5;
 
     // 4. Specialty score

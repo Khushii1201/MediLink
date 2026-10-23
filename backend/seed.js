@@ -26,9 +26,12 @@ function seedDatabase() {
     return;
   }
 
-  // Idempotent check for demo seed: skip if hospitals already exist
+  // Idempotent check for demo seed: ensure Jaipur migration if hospitals already exist
   if (hospitalCount > 0) {
-    console.log('Database already seeded. Skipping.');
+    if (db.migrateDemoDataToJaipur) {
+      db.migrateDemoDataToJaipur(db);
+    }
+    console.log('Database already seeded. Ensured Jaipur demo records.');
     return;
   }
 

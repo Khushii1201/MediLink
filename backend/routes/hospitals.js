@@ -62,9 +62,12 @@ router.get('/', (req, res) => {
   const waitStmt = db.prepare('SELECT minutes FROM waiting_times WHERE hospital_id = ?');
   const pendingStmt = db.prepare("SELECT COUNT(*) AS count FROM admissions WHERE hospital_id = ? AND status = 'PENDING'");
 
+  const DEFAULT_JAIPUR_LAT = 26.9124;
+  const DEFAULT_JAIPUR_LNG = 75.7873;
+
   const hasCoords = lat !== undefined && lng !== undefined && isValidCoordinate(lat, lng);
-  const userLat = hasCoords ? Number(lat) : null;
-  const userLng = hasCoords ? Number(lng) : null;
+  const userLat = hasCoords ? Number(lat) : DEFAULT_JAIPUR_LAT;
+  const userLng = hasCoords ? Number(lng) : DEFAULT_JAIPUR_LNG;
 
   hospitals = hospitals.map(h => {
     const resources = resourceStmt.all(h.hospital_id);
@@ -85,7 +88,7 @@ router.get('/', (req, res) => {
       avgWaitMinutes = Math.round(estimatedWaits.reduce((acc, v) => acc + v, 0) / estimatedWaits.length);
     }
 
-    const dist = hasCoords ? distanceKm(userLat, userLng, h.latitude, h.longitude) : null;
+    const dist = distanceKm(userLat, userLng, h.latitude, h.longitude);
 
     return {
       ...h,
@@ -114,15 +117,12 @@ router.get('/', (req, res) => {
   }
 
   // Sorting
-  if (sort === 'distance' && hasCoords) {
+  if (sort === 'distance' || !sort) {
     hospitals.sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
   } else if (sort === 'beds') {
     hospitals.sort((a, b) => b.available_beds - a.available_beds);
   } else if (sort === 'wait') {
     hospitals.sort((a, b) => a.avg_wait_minutes - b.avg_wait_minutes);
-  } else if (hasCoords) {
-    // Default sort by distance if location provided
-    hospitals.sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity));
   }
 
   res.json(hospitals);

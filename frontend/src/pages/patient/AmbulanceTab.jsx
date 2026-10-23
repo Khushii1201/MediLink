@@ -303,7 +303,7 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                     type="text"
                     id="amb-drop"
                     className="form-input"
-                    placeholder="e.g. AIIMS Emergency Wing, Safdarjung Trauma..."
+                    placeholder="e.g. SMS Hospital Trauma Ward, Fortis Escorts Emergency..."
                     value={dropLocation}
                     onChange={(e) => setDropLocation(e.target.value)}
                   />
