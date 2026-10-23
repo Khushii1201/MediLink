@@ -87,17 +87,22 @@ router.post('/requests', authRequired, requireRole('PATIENT'), (req, res) => {
     return res.status(400).json({ error: 'Invalid pickup coordinates' });
   }
 
-  // Find nearest available ambulance
-  const nearest = findNearestAvailableAmbulance(lat, lng);
-
   const createReqTx = db.transaction(() => {
     let reqStatus = 'REQUESTED';
     let assignedAmbulanceId = null;
 
-    if (nearest) {
-      reqStatus = 'ACCEPTED';
-      assignedAmbulanceId = nearest.ambulance_id;
-      db.prepare("UPDATE ambulances SET status = 'ON_TRIP' WHERE ambulance_id = ?").run(nearest.ambulance_id);
+    // Concurrency-safe atomic assignment loop
+    let candidate = findNearestAvailableAmbulance(lat, lng);
+    while (candidate) {
+      const updateRes = db.prepare("UPDATE ambulances SET status = 'ON_TRIP' WHERE ambulance_id = ? AND status = 'AVAILABLE'")
+        .run(candidate.ambulance_id);
+      if (updateRes.changes === 1) {
+        reqStatus = 'ACCEPTED';
+        assignedAmbulanceId = candidate.ambulance_id;
+        break;
+      }
+      // Contended: candidate was taken concurrently; find next nearest excluding candidate
+      candidate = findNearestAvailableAmbulance(lat, lng, candidate.ambulance_id);
     }
 
     const info = db.prepare(`
@@ -115,17 +120,17 @@ router.post('/requests', authRequired, requireRole('PATIENT'), (req, res) => {
       reqStatus
     );
 
-    return info.lastInsertRowid;
+    return { requestId: info.lastInsertRowid, assigned: Boolean(assignedAmbulanceId) };
   });
 
-  const requestId = createReqTx();
+  const { requestId, assigned } = createReqTx();
 
   logAudit(db, {
     user_id: req.user.user_id,
     action: 'CREATE',
     entity: 'ambulance_requests',
     entity_id: requestId,
-    details: { assigned: Boolean(nearest) },
+    details: { assigned },
   });
 
   res.status(201).json(db.prepare('SELECT * FROM ambulance_requests WHERE request_id = ?').get(requestId));

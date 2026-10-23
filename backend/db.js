@@ -139,7 +139,7 @@ function getDb(customPath) {
       patient_id INTEGER NOT NULL REFERENCES users(user_id),
       unit_id INTEGER NOT NULL REFERENCES blood_units(unit_id),
       units_requested INTEGER NOT NULL DEFAULT 1,
-      status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','APPROVED','REJECTED','FULFILLED','CANCELLED')),
+      status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','APPROVED','REJECTED','FULFILLED','CANCELLED','EXPIRED')),
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );

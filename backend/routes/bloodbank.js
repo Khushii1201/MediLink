@@ -4,13 +4,38 @@ const { authRequired, requireRole } = require('../middleware/auth');
 const { distanceKm } = require('../services/geo');
 const { logAudit } = require('../services/audit');
 const { isValidCoordinate, isNonNegativeInt, isPositiveInt } = require('../middleware/validate');
+const { getCompatibleDonorGroups, isDonorCompatible, expireStaleReservations } = require('../services/bloodCompatibility');
 
 const router = express.Router();
 const VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-// Public search for blood units with optional blood_group filter and geo distance sorting
+// Compatibility guide and matrix endpoint
+router.get('/compatibility', (req, res) => {
+  const { recipient } = req.query;
+  if (recipient) {
+    const clean = String(recipient).trim().toUpperCase();
+    if (!VALID_BLOOD_GROUPS.includes(clean)) {
+      return res.status(400).json({ error: `Invalid blood group. Allowed: ${VALID_BLOOD_GROUPS.join(', ')}` });
+    }
+    return res.json({
+      recipient: clean,
+      compatible_donors: getCompatibleDonorGroups(clean),
+      clinical_disclaimer: 'Informational matching only. Certified serological cross-match required prior to transfusion.',
+    });
+  }
+  const matrix = {};
+  for (const grp of VALID_BLOOD_GROUPS) {
+    matrix[grp] = getCompatibleDonorGroups(grp);
+  }
+  res.json({
+    matrix,
+    clinical_disclaimer: 'Informational matching only. Certified serological cross-match required prior to transfusion.',
+  });
+});
+
+// Public search for blood units with optional blood_group filter, compatible_for, and geo distance sorting
 router.get('/units', (req, res) => {
-  const { blood_group, lat, lng } = req.query;
+  const { blood_group, compatible_for, lat, lng } = req.query;
 
   if (blood_group && !VALID_BLOOD_GROUPS.includes(blood_group)) {
     return res.status(400).json({ error: `Invalid blood group. Allowed: ${VALID_BLOOD_GROUPS.join(', ')}` });
@@ -22,9 +47,23 @@ router.get('/units', (req, res) => {
     JOIN blood_banks bb ON bb.bloodbank_id = bu.bloodbank_id
   `;
   const params = [];
+  const conditions = [];
+
   if (blood_group) {
-    sql += ' WHERE bu.blood_group = ?';
+    conditions.push('bu.blood_group = ?');
     params.push(blood_group);
+  } else if (compatible_for) {
+    const cleanRecipient = String(compatible_for).trim().toUpperCase();
+    const donorGroups = getCompatibleDonorGroups(cleanRecipient);
+    if (donorGroups.length > 0) {
+      const placeholders = donorGroups.map(() => '?').join(', ');
+      conditions.push(`bu.blood_group IN (${placeholders})`);
+      params.push(...donorGroups);
+    }
+  }
+
+  if (conditions.length > 0) {
+    sql += ' WHERE ' + conditions.join(' AND ');
   }
 
   let rows = db.prepare(sql).all(...params);
@@ -355,12 +394,16 @@ router.put('/reservations/:id', authRequired, requireRole('BLOODBANK', 'ADMIN'),
         throw new Error('INSUFFICIENT_STOCK');
       }
 
-      // Decrement stock exactly once at APPROVED
-      db.prepare(`
+      // Decrement stock exactly once at APPROVED with atomic available check
+      const decRes = db.prepare(`
         UPDATE blood_units
         SET available = available - ?
-        WHERE unit_id = ?
-      `).run(reservation.units_requested, reservation.unit_id);
+        WHERE unit_id = ? AND available >= ?
+      `).run(reservation.units_requested, reservation.unit_id, reservation.units_requested);
+
+      if (decRes.changes === 0) {
+        throw new Error('INSUFFICIENT_STOCK');
+      }
     } else if (status === 'REJECTED' && currentStatus === 'APPROVED') {
       // Restore previously deducted stock if transitioning APPROVED -> REJECTED
       db.prepare(`
@@ -396,6 +439,27 @@ router.put('/reservations/:id', authRequired, requireRole('BLOODBANK', 'ADMIN'),
   });
 
   res.json(db.prepare('SELECT * FROM reservations WHERE reservation_id = ?').get(req.params.id));
+});
+
+// Admin or Staff endpoint to auto-expire reservations older than maxAgeHours (default 24h)
+router.post('/reservations/expire', authRequired, requireRole('BLOODBANK', 'ADMIN'), (req, res) => {
+  const { max_age_hours = 24 } = req.body;
+  const expiredIds = expireStaleReservations(db, Number(max_age_hours) || 24);
+
+  if (expiredIds.length > 0) {
+    logAudit(db, {
+      user_id: req.user.user_id,
+      action: 'EXPIRE_RESERVATIONS',
+      entity: 'reservations',
+      details: { count: expiredIds.length, expired_ids: expiredIds },
+    });
+  }
+
+  res.json({
+    ok: true,
+    expired_count: expiredIds.length,
+    expired_reservation_ids: expiredIds,
+  });
 });
 
 module.exports = router;

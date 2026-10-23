@@ -175,9 +175,22 @@ export default function FindCareTab({ coords, onRequestAdmission }) {
                     </div>
                   </div>
 
+                  {rec.why_recommended && (
+                    <div className="why-recommended-box" style={{ margin: '0.75rem 0', padding: '0.6rem 0.75rem', background: '#f1f5f9', borderRadius: '6px', fontSize: '0.85rem' }}>
+                      <strong style={{ color: '#0f766e' }}>Why recommended:</strong> {rec.why_recommended}
+                    </div>
+                  )}
+
                   <div className="rec-card-footer">
+                    <div>
+                      {!rec.eligible && (
+                        <span className="badge badge-warning" style={{ marginRight: '8px' }}>
+                          Resource Depleted
+                        </span>
+                      )}
+                    </div>
                     <Button
-                      variant="primary"
+                      variant={rec.eligible ? 'primary' : 'outline'}
                       size="sm"
                       onClick={() => onRequestAdmission(rec)}
                     >

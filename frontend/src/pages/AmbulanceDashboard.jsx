@@ -401,6 +401,7 @@ export default function AmbulanceDashboard() {
               markers={mapMarkers}
               routeLine={routeLine}
               height="350px"
+              autoFit={mapMarkers.length > 1}
             />
           </div>
         </div>

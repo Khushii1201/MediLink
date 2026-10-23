@@ -198,6 +198,7 @@ export default function AmbulanceTab({ coords, requests = [], onRefresh }) {
                 markers={trackingMarkers}
                 routeLine={routeLine}
                 height="380px"
+                autoFit={trackingMarkers.length > 1}
               />
             </div>
 

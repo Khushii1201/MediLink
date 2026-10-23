@@ -104,6 +104,10 @@ export const api = {
     return request(`/waiting-time${qs ? `?${qs}` : ''}`, { auth: false });
   },
 
+  // Blood Compatibility & Expiry
+  getBloodCompatibility: (recipient) => request(`/bloodbank/compatibility${recipient ? `?recipient=${encodeURIComponent(recipient)}` : ''}`, { auth: false }),
+  expireBloodReservations: (max_age_hours = 24) => request('/bloodbank/reservations/expire', { method: 'POST', body: { max_age_hours } }),
+
   // Admin
   adminUsers: () => request('/admin/users'),
   adminCreateUser: (body) => request('/admin/users', { method: 'POST', body }),
@@ -117,4 +121,5 @@ export const api = {
     return request(`/admin/audit${qs ? `?${qs}` : ''}`);
   },
   adminAnalytics: () => request('/admin/analytics'),
+  adminAnomalies: () => request('/admin/anomalies'),
 };

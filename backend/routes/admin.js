@@ -4,6 +4,7 @@ const db = require('../db');
 const { authRequired, requireRole } = require('../middleware/auth');
 const { isValidEmail, isValidPhone } = require('../middleware/validate');
 const { logAudit } = require('../services/audit');
+const { detectAnomalies } = require('../services/anomalyDetector');
 
 const router = express.Router();
 router.use(authRequired, requireRole('ADMIN'));
@@ -331,6 +332,7 @@ router.get('/analytics', (req, res) => {
     WHERE status = 'COMPLETED'
   `).get();
   const avgAdmissionProcessingMinutes = avgProcessingRow?.avg_minutes || 0;
+  const anomalies = detectAnomalies(db);
 
   res.json({
     totals,
@@ -347,7 +349,13 @@ router.get('/analytics', (req, res) => {
     },
     lowStockBlood,
     avgAdmissionProcessingMinutes,
+    anomalies,
   });
+});
+
+// Anomaly and operational health alerts
+router.get('/anomalies', (req, res) => {
+  res.json(detectAnomalies(db));
 });
 
 module.exports = router;

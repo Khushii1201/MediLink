@@ -305,6 +305,7 @@ export default function Hospitals() {
               zoom={11}
               markers={mapMarkers}
               height="550px"
+              autoFit={mapMarkers.length > 0}
             />
           </div>
         </div>

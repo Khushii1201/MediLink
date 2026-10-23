@@ -200,6 +200,7 @@ export default function Home() {
               zoom={11}
               markers={mapMarkers}
               height="420px"
+              autoFit={mapMarkers.length > 0}
             />
           </div>
         </div>

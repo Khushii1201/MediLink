@@ -81,8 +81,34 @@ router.get('/', authRequired, requireRole('PATIENT'), (req, res) => {
       specScore = specMatched ? 1 : 0;
     }
 
-    // Weighted composite score (0 to 1)
-    const totalScore = (distScore * wDist) + (availScore * wAvail) + (waitScore * wWait) + (specScore * wSpec);
+    // 5. Eligibility verification
+    const hasTargetUnit = targetRes.total > 0;
+    const hasAvailableCapacity = targetRes.available > 0;
+    const eligible = hasAvailableCapacity;
+    const ineligibilityReasons = [];
+    if (!hasTargetUnit) {
+      ineligibilityReasons.push(`Facility does not maintain a ${resourceType} department.`);
+    } else if (!hasAvailableCapacity) {
+      ineligibilityReasons.push(`0 of ${targetRes.total} ${resourceType} units currently available.`);
+    }
+
+    // 6. Transparent "Why Recommended?" generation
+    const positiveFactors = [];
+    if (dist !== null) {
+      if (dist <= 5) positiveFactors.push(`Near proximity (${dist} km)`);
+      else if (dist <= 15) positiveFactors.push(`Within standard transit range (${dist} km)`);
+    }
+    if (availScore >= 0.25) positiveFactors.push(`${targetRes.available} ${resourceType} units available`);
+    if (avgWaitMinutes <= 30) positiveFactors.push(`Short estimated wait time (~${avgWaitMinutes}m)`);
+    if (specMatched) positiveFactors.push(`Verified specialty department for "${specialty}"`);
+
+    const whyRecommended = eligible
+      ? (positiveFactors.length > 0 ? positiveFactors.join(' · ') : `Verified facility with ${targetRes.available} ${resourceType} available.`)
+      : `Ineligible: ${ineligibilityReasons.join(' ')}`;
+
+    // Weighted composite score (0 to 1). Ineligible hospitals receive a score penalty so eligible facilities always rank first
+    const rawScore = (distScore * wDist) + (availScore * wAvail) + (waitScore * wWait) + (specScore * wSpec);
+    const finalScore = eligible ? rawScore : rawScore * 0.2;
 
     return {
       hospital_id: h.hospital_id,
@@ -90,13 +116,17 @@ router.get('/', authRequired, requireRole('PATIENT'), (req, res) => {
       address: h.address,
       specialties: h.specialties,
       distance_km: dist,
+      distance_calculation_method: 'haversine_great_circle',
+      eligible,
+      ineligibility_reasons: ineligibilityReasons,
+      why_recommended: whyRecommended,
       target_resource: {
         type: resourceType,
         total: targetRes.total,
         available: targetRes.available,
       },
       avg_waiting_minutes: avgWaitMinutes,
-      score: Math.round(totalScore * 100) / 100,
+      score: Math.round(finalScore * 100) / 100,
       breakdown: {
         distance: {
           score: Math.round(distScore * 100) / 100,
@@ -121,7 +151,14 @@ router.get('/', authRequired, requireRole('PATIENT'), (req, res) => {
         },
       },
     };
-  }).sort((a, b) => b.score - a.score);
+  }).sort((a, b) => {
+    // 1. Eligible first
+    if (a.eligible !== b.eligible) return a.eligible ? -1 : 1;
+    // 2. Higher score first
+    if (b.score !== a.score) return b.score - a.score;
+    // 3. Deterministic tie breaker by hospital_id
+    return a.hospital_id - b.hospital_id;
+  });
 
   // Persist top recommendation only once per patient + hospital per 10 minutes
   if (scored.length > 0) {

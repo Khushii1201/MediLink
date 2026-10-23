@@ -41,13 +41,56 @@ const ICONS = {
   DEFAULT: createCustomIcon('#64748b', '•'),
 };
 
+function isValidCoord(lat, lng) {
+  return (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180 &&
+    (lat !== 0 || lng !== 0)
+  );
+}
+
 function ChangeView({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
-    if (center && center[0] && center[1]) {
+    if (center && isValidCoord(center[0], center[1])) {
       map.setView(center, zoom || map.getZoom());
     }
   }, [center, zoom, map]);
+  return null;
+}
+
+function FitBounds({ markers = [], routeLine = null, enabled = false }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!enabled) return;
+    const points = [];
+    markers.forEach((m) => {
+      if (m && isValidCoord(m.lat, m.lng)) {
+        points.push([m.lat, m.lng]);
+      }
+    });
+    if (routeLine && Array.isArray(routeLine)) {
+      routeLine.forEach((p) => {
+        if (p && isValidCoord(p[0], p[1])) {
+          points.push(p);
+        }
+      });
+    }
+    if (points.length > 1) {
+      try {
+        const bounds = L.latLngBounds(points);
+        map.fitBounds(bounds, { padding: [35, 35], maxZoom: 14 });
+      } catch (err) {
+        console.warn('Could not fit map bounds:', err);
+      }
+    }
+  }, [markers, routeLine, enabled, map]);
   return null;
 }
 
@@ -68,10 +111,14 @@ export function MapView({
   markers = [],
   routeLine = null,
   onMapClick = null,
+  autoFit = false,
   height = '400px',
   className = '',
 }) {
-  const validCenter = center && center[0] && center[1] ? center : [28.6139, 77.2090];
+  const validCenter =
+    center && isValidCoord(center[0], center[1])
+      ? center
+      : [28.6139, 77.2090];
 
   return (
     <div className={`map-wrapper ${className}`} style={{ height, width: '100%', position: 'relative' }}>
@@ -82,6 +129,7 @@ export function MapView({
         style={{ height: '100%', width: '100%', borderRadius: 'inherit' }}
       >
         <ChangeView center={validCenter} zoom={zoom} />
+        <FitBounds markers={markers} routeLine={routeLine} enabled={autoFit} />
         {onMapClick && <MapClickHandler onMapClick={onMapClick} />}
 
         <TileLayer
@@ -90,7 +138,7 @@ export function MapView({
         />
 
         {markers.map((m, idx) => {
-          if (!m.lat || !m.lng) return null;
+          if (!m || !isValidCoord(m.lat, m.lng)) return null;
           const icon = m.iconType && ICONS[m.iconType] ? ICONS[m.iconType] : ICONS.DEFAULT;
 
           return (

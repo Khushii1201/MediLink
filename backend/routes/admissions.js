@@ -97,11 +97,30 @@ router.put('/:id/cancel', authRequired, requireRole('PATIENT'), (req, res) => {
     return res.status(403).json({ error: 'You can only cancel your own requests' });
   }
 
-  if (admission.status !== 'PENDING') {
-    return res.status(409).json({ error: `Cannot cancel admission with status ${admission.status}. Only PENDING can be cancelled.` });
+  if (!['PENDING', 'ACCEPTED'].includes(admission.status)) {
+    return res.status(409).json({ error: `Cannot cancel admission with status ${admission.status}. Only PENDING or ACCEPTED can be cancelled.` });
   }
 
-  db.prepare(`UPDATE admissions SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE admission_id = ?`).run(req.params.id);
+  const cancelTx = db.transaction(() => {
+    if (admission.status === 'ACCEPTED') {
+      const bedResource = db.prepare(`
+        SELECT resource_id, total, available FROM resources
+        WHERE hospital_id = ? AND type = 'BED'
+      `).get(admission.hospital_id);
+
+      if (bedResource) {
+        db.prepare(`
+          UPDATE resources
+          SET available = MIN(available + 1, total)
+          WHERE resource_id = ?
+        `).run(bedResource.resource_id);
+      }
+    }
+
+    db.prepare(`UPDATE admissions SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP WHERE admission_id = ?`).run(req.params.id);
+  });
+
+  cancelTx();
 
   logAudit(db, {
     user_id: req.user.user_id,
@@ -114,10 +133,10 @@ router.put('/:id/cancel', authRequired, requireRole('PATIENT'), (req, res) => {
   res.json(db.prepare('SELECT * FROM admissions WHERE admission_id = ?').get(req.params.id));
 });
 
-// Hospital staff processes request (accept / reject / complete)
+// Hospital staff processes request (accept / reject / complete / cancel)
 router.put('/:id/status', authRequired, requireRole('HOSPITAL', 'ADMIN'), (req, res) => {
   const { status } = req.body;
-  const allowed = ['ACCEPTED', 'REJECTED', 'COMPLETED'];
+  const allowed = ['ACCEPTED', 'REJECTED', 'COMPLETED', 'CANCELLED'];
   if (!status || !allowed.includes(status)) {
     return res.status(400).json({ error: 'status must be one of ' + allowed.join(', ') });
   }
@@ -133,10 +152,10 @@ router.put('/:id/status', authRequired, requireRole('HOSPITAL', 'ADMIN'), (req, 
 
   // Enforce State Machine:
   // PENDING -> ACCEPTED | REJECTED
-  // ACCEPTED -> COMPLETED
+  // ACCEPTED -> COMPLETED | CANCELLED | REJECTED
   const validTransitions = {
     PENDING: ['ACCEPTED', 'REJECTED'],
-    ACCEPTED: ['COMPLETED'],
+    ACCEPTED: ['COMPLETED', 'CANCELLED', 'REJECTED'],
   };
 
   if (!validTransitions[currentStatus] || !validTransitions[currentStatus].includes(status)) {
@@ -157,14 +176,18 @@ router.put('/:id/status', authRequired, requireRole('HOSPITAL', 'ADMIN'), (req, 
         throw new Error('NO_BEDS_AVAILABLE');
       }
 
-      // Decrement bed count exactly once
-      db.prepare(`
+      // Decrement bed count with atomic concurrency check
+      const decRes = db.prepare(`
         UPDATE resources
         SET available = available - 1
-        WHERE resource_id = ?
+        WHERE resource_id = ? AND available > 0
       `).run(bedResource.resource_id);
-    } else if (status === 'COMPLETED') {
-      // Restore one bed, capped at total
+
+      if (decRes.changes === 0) {
+        throw new Error('NO_BEDS_AVAILABLE');
+      }
+    } else if (status === 'COMPLETED' || ((status === 'CANCELLED' || status === 'REJECTED') && currentStatus === 'ACCEPTED')) {
+      // Restore one bed if completing or if cancelling/rejecting an already ACCEPTED admission
       const bedResource = db.prepare(`
         SELECT resource_id, total, available FROM resources
         WHERE hospital_id = ? AND type = 'BED'

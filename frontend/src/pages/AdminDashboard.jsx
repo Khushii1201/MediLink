@@ -106,9 +106,11 @@ export default function AdminDashboard() {
     loadData();
   }, [loadData]);
 
-  // Tab definitions
+  const anomaliesList = analytics?.anomalies || [];
+
   const tabs = [
     { id: 'overview', label: 'System Overview' },
+    { id: 'anomalies', label: `Alerts (${anomaliesList.length})` },
     { id: 'users', label: `Users (${users.length})` },
     { id: 'hospitals', label: `Hospitals (${hospitals.length})` },
     { id: 'ambulances', label: `Ambulances (${ambulances.length})` },
@@ -470,6 +472,58 @@ export default function AdminDashboard() {
             </Card>
           </div>
         </div>
+      )}
+
+      {/* TAB: ANOMALIES & OPERATIONAL ALERTS */}
+      {activeTab === 'anomalies' && (
+        <Card title={`Operational Anomaly & Bottleneck Alerts (${anomaliesList.length})`}>
+          <p style={{ color: 'var(--color-text-secondary)', marginBottom: '16px', fontSize: '0.875rem' }}>
+            Automated rule-based detection engine monitoring inventory consistency, prolonged queues, and vehicle fleet anomalies in real time.
+          </p>
+          {anomaliesList.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✓</div>
+              <strong>No operational anomalies detected</strong>
+              <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>All resource counts, bed allocations, dispatch queues, and blood reserves are operating within normal thresholds.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {anomaliesList.map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px 16px',
+                    borderLeft: `4px solid ${
+                      a.severity === 'CRITICAL' ? 'var(--color-danger)' :
+                      a.severity === 'HIGH' ? 'var(--color-warning)' : 'var(--color-primary)'
+                    }`,
+                    backgroundColor: 'var(--color-surface)',
+                  }}
+                >
+                  <div className="flex-between" style={{ marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <Badge
+                        status={a.severity === 'CRITICAL' ? 'CRITICAL' : a.severity === 'HIGH' ? 'MEDIUM' : 'LOW'}
+                        label={a.severity}
+                        size="sm"
+                      />
+                      <strong style={{ fontSize: '0.9rem' }}>{a.alert_type}</strong>
+                    </div>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+                      Entity: {a.entity} #{a.entity_id}
+                    </span>
+                  </div>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '0.875rem' }}>{a.explanation}</p>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                    Recommended Action: {a.suggested_action}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       )}
 
       {/* TAB 2: USERS */}
